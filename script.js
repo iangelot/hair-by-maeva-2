@@ -15,15 +15,34 @@ document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('clic
 
 const modal = document.querySelector('#booking-modal');
 const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {} };
+const catalogLengths = {
+  'Senegalese Twist': { Bob: 200, Middle: 230, Waist: 260, Butt: 300 },
+  'Boho Knotless': { Bob: 180, Middle: 210, Waist: 240 },
+  'Soft Locs': { Bob: 220, Middle: 250, Waist: 280 },
+};
+const syncLengthOptions = () => {
+  const available = catalogLengths[selected.service] || {};
+  document.querySelectorAll('.length-grid button').forEach((button) => {
+    const name = button.dataset.value.split(' — ')[0];
+    const price = available[name];
+    button.hidden = price === undefined;
+    if (price !== undefined) {
+      button.dataset.value = `${name} — $${price}`;
+      button.querySelector('small').textContent = `$${price}`;
+    }
+  });
+  selected.length = '';
+  document.querySelectorAll('.length-grid button').forEach((button) => button.classList.remove('picked'));
+};
 const closeModal = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); };
 const showStep = (step) => { document.querySelectorAll('.modal-step').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== step)); document.querySelector('.modal-success').classList.add('hidden'); };
 const openModal = () => { modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); showStep('service'); };
-document.querySelector('#start-booking').addEventListener('click', openModal);
-document.querySelectorAll('.service-book').forEach((btn) => btn.addEventListener('click', () => { openModal(); selected.service = btn.dataset.service; showStep('length'); }));
+document.querySelector('#start-booking').addEventListener('click', () => { selected.service = ''; syncLengthOptions(); openModal(); });
+document.querySelectorAll('.service-book').forEach((btn) => btn.addEventListener('click', () => { openModal(); selected.service = btn.dataset.service; syncLengthOptions(); showStep('length'); }));
 document.querySelector('.modal-close').addEventListener('click', closeModal);
 document.querySelector('.modal-close-success').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-document.querySelectorAll('.modal-options button').forEach((btn) => btn.addEventListener('click', () => { selected.service = btn.dataset.value; showStep('length'); }));
+document.querySelectorAll('.modal-options button').forEach((btn) => btn.addEventListener('click', () => { selected.service = btn.dataset.value; syncLengthOptions(); showStep('length'); }));
 document.querySelectorAll('.length-grid button').forEach((btn) => btn.addEventListener('click', () => { document.querySelectorAll('.length-grid button').forEach((b) => b.classList.remove('picked')); btn.classList.add('picked'); selected.length = btn.dataset.value; }));
 document.querySelector('.modal-step[data-step="length"] .modal-next').addEventListener('click', () => { if (!selected.length) return alert('Please choose a length.'); showStep('details'); });
 
@@ -50,3 +69,5 @@ document.querySelector('#contact-form').addEventListener('submit', async (e) => 
   try { const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Unable to send.'); form.reset(); status.textContent = 'Message sent — I’ll be in touch soon.'; } catch (error) { status.textContent = error.message; } finally { button.disabled = false; }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+const dateInput = document.querySelector('input[name="date"]');
+dateInput.min = new Date().toISOString().slice(0, 10);
