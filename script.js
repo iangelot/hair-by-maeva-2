@@ -114,3 +114,27 @@ document.querySelector('#contact-form').addEventListener('submit', async (e) => 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 const dateInput = document.querySelector('input[name="date"]');
 dateInput.min = new Date().toISOString().slice(0, 10);
+async function loadPublicContent() {
+  try {
+    const response = await fetch('/api/content');
+    if (!response.ok) return;
+    const data = await response.json();
+    if (Array.isArray(data.policies) && data.policies.length) {
+      document.querySelectorAll('.policy-list details').forEach((detail, index) => {
+        const policy = data.policies[index];
+        if (!policy) return;
+        detail.querySelector('summary').firstChild.textContent = policy.title + ' ';
+        detail.querySelector('p').textContent = policy.body;
+      });
+    }
+    if (Array.isArray(data.socials) && data.socials.length) {
+      const socialNode = document.querySelector('.contact-note p:nth-child(2)');
+      socialNode.replaceChildren();
+      data.socials.forEach((social, index) => {
+        if (index) socialNode.append(' · ');
+        const link = document.createElement('a'); link.href = social.url; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = social.label; socialNode.append(link);
+      });
+    }
+  } catch { /* static Figma copy remains available when the API is offline */ }
+}
+loadPublicContent();
