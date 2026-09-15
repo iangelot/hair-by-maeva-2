@@ -57,4 +57,8 @@ async function sendEmail({ to, subject, html, replyTo }) {
   return response.json();
 }
 
-module.exports = { body, clean, env, json, sendEmail, supabase, tokenPair };
+function adminRecipients() {
+  return [env('ADMIN_EMAIL'), ...(process.env.ADMIN_ROUTING_EMAIL ? [process.env.ADMIN_ROUTING_EMAIL] : [])];
+}
+
+module.exports = { adminRecipients, body, clean, env, json, sendEmail, supabase, tokenPair };

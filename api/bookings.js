@@ -1,4 +1,4 @@
-const { body, clean, env, json, sendEmail, supabase, tokenPair } = require('./_lib');
+const { adminRecipients, body, clean, env, json, sendEmail, supabase, tokenPair } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
@@ -44,8 +44,8 @@ module.exports = async function handler(req, res) {
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
     const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
     const html = `<p>Hi ${fullName},</p><p>Your Hair by Maeva booking request <strong>${booking.booking_number}</strong> has been received.</p><p>${service.name} · ${length.name}<br>${date} at ${time}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
-    await sendEmail({ to: email, subject: `Hair by Maeva — Booking ${booking.booking_number}`, html });
-    if (process.env.ADMIN_EMAIL) await sendEmail({ to: env('ADMIN_EMAIL'), subject: `New Hair by Maeva booking — ${booking.booking_number}`, html: `<p>New booking from ${fullName} (${email}).</p>${html}` });
+    await sendEmail({ to: email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number}`, html });
+    if (process.env.ADMIN_EMAIL) await sendEmail({ to: adminRecipients(), replyTo: email, subject: `New Hair by Maeva booking — ${booking.booking_number}`, html: `<p>New booking from ${fullName} (${email}).</p>${html}` });
     return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl: manageUrl });
   } catch (error) {
     console.error(error);
