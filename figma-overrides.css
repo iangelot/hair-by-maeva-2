@@ -14,3 +14,4 @@
 .service-options{display:grid;gap:8px;margin:18px 0}.service-option{display:flex;align-items:center;gap:10px;border:1px solid var(--line);padding:12px;font:12px var(--mono)}.service-option input{width:auto;margin:0}.option-editor{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0;padding-top:14px;border-top:1px solid var(--line)}.option-editor .eyebrow{grid-column:1/-1;margin:0}.option-editor p{font-size:12px;color:#765e58}
 .menu-button{margin-left:auto}
 .hero .menu-button span{background:#fff}
+.hero-mark{color:var(--ink)}
