@@ -13,8 +13,10 @@ module.exports = async function handler(req, res) {
     const fullName = clean(input.fullName, 120);
     const email = clean(input.email, 160).toLowerCase();
     const phone = clean(input.phone, 40);
-    if (!serviceId || !lengthId || !date || !time || !fullName || !email || !phone) return json(res, 400, { error: 'Please complete all required booking details.' });
+    if ((!serviceId && !serviceSlug) || (!lengthId && !lengthName) || !date || !time || !fullName || !email || !phone) return json(res, 400, { error: 'Please complete all required booking details.' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return json(res, 400, { error: 'Invalid appointment date or time.' });
+    const requestedAt = new Date(`${date}T${time}:00`);
+    if (Number.isNaN(requestedAt.getTime()) || requestedAt.getTime() < Date.now() - 5 * 60 * 1000) return json(res, 400, { error: 'Please choose a future appointment date and time.' });
 
     const services = await supabase(`services?${serviceId ? `id=eq.${encodeURIComponent(serviceId)}` : `slug=eq.${encodeURIComponent(serviceSlug)}`}&is_active=eq.true&select=id,name,slug,duration_minutes`);
     const service = services[0];
@@ -23,6 +25,12 @@ module.exports = async function handler(req, res) {
     if (!service || !length) return json(res, 400, { error: 'That service or length is no longer available.' });
     const blocked = await supabase(`blocked_dates?blocked_date=eq.${date}&select=id`);
     if (blocked.length) return json(res, 409, { error: 'That date is not available.' });
+    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+    const rules = await supabase(`availability_rules?weekday=eq.${weekday}&is_active=eq.true&select=start_time,end_time`);
+    const inRule = rules.some((rule) => String(time) >= String(rule.start_time).slice(0, 5) && String(time) < String(rule.end_time).slice(0, 5));
+    if (!inRule) return json(res, 409, { error: 'That time is outside Maeva’s availability.' });
+    const blockedTimes = await supabase(`blocked_times?blocked_date=eq.${date}&select=start_time,end_time`);
+    if (blockedTimes.some((slot) => String(time) >= String(slot.start_time).slice(0, 5) && String(time) < String(slot.end_time).slice(0, 5))) return json(res, 409, { error: 'That time is not available.' });
     const conflicts = await supabase(`bookings?appointment_date=eq.${date}&appointment_time=eq.${time}&status=not.in.(cancelled)&select=id`);
     if (conflicts.length) return json(res, 409, { error: 'That time was just taken. Please choose another slot.' });
 
