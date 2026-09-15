@@ -114,6 +114,22 @@ document.querySelector('#contact-form').addEventListener('submit', async (e) => 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 const dateInput = document.querySelector('input[name="date"]');
 dateInput.min = new Date().toISOString().slice(0, 10);
+const timeInput = document.querySelector('input[name="time"]');
+const timeSelect = document.createElement('select');
+timeSelect.name = 'time'; timeSelect.required = true; timeSelect.setAttribute('aria-label', 'Available appointment time');
+timeSelect.innerHTML = '<option value="">Choose a date first</option>';
+timeInput.replaceWith(timeSelect);
+async function loadAvailability() {
+  timeSelect.innerHTML = '<option value="">Loading available times…</option>';
+  if (!dateInput.value || !selected.service) { timeSelect.innerHTML = '<option value="">Choose a date first</option>'; return; }
+  try {
+    const response = await fetch(`/api/availability?date=${encodeURIComponent(dateInput.value)}&serviceSlug=${encodeURIComponent(selected.service.toLowerCase().replaceAll(' ', '-'))}`);
+    const data = await response.json();
+    if (!response.ok || !data.slots?.length) throw new Error('No appointment times are available on this date.');
+    timeSelect.innerHTML = '<option value="">Choose an available time</option>' + data.slots.map((slot) => `<option value="${slot}">${slot}</option>`).join('');
+  } catch (error) { timeSelect.innerHTML = `<option value="">${error.message}</option>`; }
+}
+dateInput.addEventListener('change', loadAvailability);
 async function loadPublicContent() {
   try {
     const response = await fetch('/api/content');

@@ -31,8 +31,11 @@ module.exports = async function handler(req, res) {
     if (!inRule) return json(res, 409, { error: 'That time is outside Maeva’s availability.' });
     const blockedTimes = await supabase(`blocked_times?blocked_date=eq.${date}&select=start_time,end_time`);
     if (blockedTimes.some((slot) => String(time) >= String(slot.start_time).slice(0, 5) && String(time) < String(slot.end_time).slice(0, 5))) return json(res, 409, { error: 'That time is not available.' });
-    const conflicts = await supabase(`bookings?appointment_date=eq.${date}&appointment_time=eq.${time}&status=not.in.(cancelled)&select=id`);
-    if (conflicts.length) return json(res, 409, { error: 'That time was just taken. Please choose another slot.' });
+    const [hours, minutes] = time.split(':').map(Number);
+    const requestedStart = hours * 60 + minutes;
+    const requestedEnd = requestedStart + Number(service.duration_minutes || 180);
+    const conflicts = await supabase(`bookings?appointment_date=eq.${date}&status=not.in.(cancelled)&select=appointment_time,duration_minutes`);
+    if (conflicts.some((item) => { const [h, m] = String(item.appointment_time).slice(0, 5).split(':').map(Number); const start = h * 60 + m; const end = start + Number(item.duration_minutes || 180); return requestedStart < end && requestedEnd > start; })) return json(res, 409, { error: 'That time overlaps another appointment. Please choose another slot.' });
 
     const [existing] = await supabase(`customers?email=eq.${encodeURIComponent(email)}&select=id`);
     const customer = existing || (await supabase('customers', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ full_name: fullName, email, phone, location: clean(input.location, 180) }) }))[0];
