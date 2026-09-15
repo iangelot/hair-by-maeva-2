@@ -17,7 +17,12 @@ module.exports = async function handler(req, res) {
     const date = clean(req.query?.date, 10);
     const serviceSlug = clean(req.query?.serviceSlug, 120);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !serviceSlug) return json(res, 400, { error: 'Choose a date and service.' });
+    const settings = (await supabase('booking_settings?id=eq.1&select=minimum_notice_hours,maximum_advance_days&limit=1'))[0] || {};
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+    const requestedDay = new Date(`${date}T23:59:59`);
+    const minNotice = Number(settings.minimum_notice_hours ?? process.env.BOOKING_MIN_NOTICE_HOURS ?? 0);
+    const maxAdvanceDays = Number(settings.maximum_advance_days ?? process.env.BOOKING_MAX_ADVANCE_DAYS ?? 365);
+    if (Number.isNaN(requestedDay.getTime()) || requestedDay.getTime() < Date.now() + minNotice * 60 * 60 * 1000 || requestedDay.getTime() > Date.now() + maxAdvanceDays * 24 * 60 * 60 * 1000) return json(res, 200, { date, slots: [] });
     const [rules, blockedDates, blockedTimes, services, bookings] = await Promise.all([
       supabase(`availability_rules?weekday=eq.${weekday}&is_active=eq.true&select=start_time,end_time`),
       supabase(`blocked_dates?blocked_date=eq.${date}&select=id`),
@@ -33,6 +38,8 @@ module.exports = async function handler(req, res) {
     for (const rule of rules) {
       const start = minutes(rule.start_time); const end = minutes(rule.end_time);
       for (let slot = start; slot + duration <= end; slot += 30) {
+        const slotTime = new Date(`${date}T${formatTime(slot)}:00`).getTime();
+        if (slotTime < Date.now() + minNotice * 60 * 60 * 1000) continue;
         const slotEnd = slot + duration;
         if (!busy.some((item) => slot < item.end && slotEnd > item.start) && !blocked.some((item) => slot < item.end && slotEnd > item.start)) slots.push(formatTime(slot));
       }

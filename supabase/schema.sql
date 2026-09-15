@@ -103,6 +103,13 @@ create table if not exists public.blocked_times (
   end_time time not null,
   reason text
 );
+create table if not exists public.booking_settings (
+  id integer primary key default 1 check (id = 1),
+  minimum_notice_hours integer not null default 0 check (minimum_notice_hours >= 0),
+  maximum_advance_days integer not null default 365 check (maximum_advance_days >= 1),
+  updated_at timestamptz not null default now()
+);
+insert into public.booking_settings (id) values (1) on conflict (id) do nothing;
 
 create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
@@ -122,6 +129,7 @@ create table if not exists public.bookings (
   payment_status public.payment_status not null default 'unpaid',
   status public.booking_status not null default 'pending_payment',
   customer_notes text,
+  admin_notes text,
   access_token_hash text not null unique,
   access_token_ciphertext text,
   token_expires_at timestamptz not null default (now() + interval '90 days'),
@@ -211,6 +219,7 @@ alter table public.availability_rules enable row level security;
 alter table public.blocked_dates enable row level security;
 alter table public.blocked_times enable row level security;
 alter table public.bookings enable row level security;
+alter table public.booking_settings enable row level security;
 alter table public.payments enable row level security;
 alter table public.gallery_items enable row level security;
 alter table public.website_sections enable row level security;
@@ -236,7 +245,6 @@ create policy "public can read visible sections" on public.website_sections for 
 create policy "public can read visible policies" on public.policies for select to anon, authenticated using (is_visible);
 create policy "public can read active socials" on public.social_links for select to anon, authenticated using (is_active);
 
-create policy "admins read admin users" on public.admin_users for select to authenticated using (public.is_admin());
 create policy "admins manage admin users" on public.admin_users for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 create policy "admins manage categories" on public.service_categories for all to authenticated using (public.is_admin()) with check (public.is_admin());
@@ -245,6 +253,7 @@ create policy "admins manage lengths" on public.service_lengths for all to authe
 create policy "admins manage options" on public.service_options for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage payments config" on public.payment_methods for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage availability" on public.availability_rules for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage booking settings" on public.booking_settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage blocked dates" on public.blocked_dates for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage blocked times" on public.blocked_times for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage gallery" on public.gallery_items for all to authenticated using (public.is_admin()) with check (public.is_admin());
@@ -252,7 +261,6 @@ create policy "admins manage cms" on public.website_sections for all to authenti
 create policy "admins manage policies" on public.policies for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage socials" on public.social_links for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage templates" on public.email_templates for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "admins read customers" on public.customers for select to authenticated using (public.is_admin());
 create policy "admins manage customers" on public.customers for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage bookings" on public.bookings for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage payments" on public.payments for all to authenticated using (public.is_admin()) with check (public.is_admin());
@@ -263,6 +271,39 @@ create policy "admins manage contacts" on public.contact_messages for all to aut
 revoke all on public.bookings from anon, authenticated;
 revoke all on public.payments from anon, authenticated;
 revoke all on public.contact_messages from anon, authenticated;
+
+-- Database-level overlap protection for concurrent booking requests.
+create or replace function public.prevent_booking_overlap()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.status = 'cancelled' then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended(new.appointment_date::text, 0));
+  if exists (
+    select 1 from public.bookings b
+    where b.id is distinct from new.id
+      and b.appointment_date = new.appointment_date
+      and b.status <> 'cancelled'
+      and (new.appointment_date + new.appointment_time,
+           new.appointment_date + new.appointment_time + make_interval(mins => new.duration_minutes))
+          overlaps
+          (b.appointment_date + b.appointment_time,
+           b.appointment_date + b.appointment_time + make_interval(mins => b.duration_minutes))
+  ) then
+    raise exception 'That appointment overlaps an existing booking.' using errcode = '23P01';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.prevent_booking_overlap() from public, anon, authenticated, service_role;
+drop trigger if exists bookings_prevent_overlap on public.bookings;
+create trigger bookings_prevent_overlap
+before insert or update of appointment_date, appointment_time, duration_minutes, status
+on public.bookings for each row execute function public.prevent_booking_overlap();
 
 -- Initial editable catalog used by the first customer-facing build.
 insert into public.service_categories (name, slug, display_order) values
@@ -292,6 +333,7 @@ insert into public.website_sections (page_slug, section_key, content, display_or
   ('home','hero','{"title":"PROTECTIVE STYLES, MADE BEAUTIFULLY.","description":"Chicago based braiding specialist creating detailed, long-lasting styles tailored to you.","primaryCta":"BOOK AN APPOINTMENT","secondaryCta":"VIEW SERVICES ↓"}'::jsonb,1),
   ('home','services','{"eyebrow":"SERVICES & PRICING","title":"Quality styles, best pricing."}'::jsonb,2),
   ('home','booking','{"eyebrow":"READY WHEN YOU ARE","title":"Your next style starts here."}'::jsonb,3)
+ ,('home','seo','{"title":"Hair by Maeva — Protective styles, made beautifully.","description":"Chicago-based braiding specialist creating detailed, long-lasting protective styles.","image":"./assets/web/hero.jpg"}'::jsonb,4)
 on conflict (page_slug,section_key) do nothing;
 insert into public.email_templates (template_key, subject, html_body) values
   ('payment_submitted','Hair by Maeva — Payment Submitted','<p>Hi {{customer_name}},</p><p>Your payment is awaiting verification.</p>'),

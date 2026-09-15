@@ -1,4 +1,8 @@
-const { adminRecipients, body, clean, env, json, supabase, tokenPair, trySendEmail } = require('./_lib');
+const { adminRecipients, body, clean, env, escapeHtml, json, supabase, tokenPair, trySendEmail } = require('./_lib');
+
+// The reservation fee is a business rule, not a value the browser is allowed
+// to choose. Keep it server-owned until an admin-configurable setting exists.
+const RESERVATION_FEE = 20;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
@@ -13,10 +17,15 @@ module.exports = async function handler(req, res) {
     const fullName = clean(input.fullName, 120);
     const email = clean(input.email, 160).toLowerCase();
     const phone = clean(input.phone, 40);
-    if ((!serviceId && !serviceSlug) || (!lengthId && !lengthName) || !date || !time || !fullName || !email || !phone) return json(res, 400, { error: 'Please complete all required booking details.' });
+    if ((!serviceId && !serviceSlug) || (!lengthId && !lengthName) || !date || !time || !fullName || !email || !phone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: 'Please complete all required booking details with a valid email.' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return json(res, 400, { error: 'Invalid appointment date or time.' });
+    if (Number(time.slice(3, 5)) % 30 !== 0) return json(res, 400, { error: 'Please choose a 30-minute appointment slot.' });
     const requestedAt = new Date(`${date}T${time}:00`);
-    if (Number.isNaN(requestedAt.getTime()) || requestedAt.getTime() < Date.now() - 5 * 60 * 1000) return json(res, 400, { error: 'Please choose a future appointment date and time.' });
+    const settings = (await supabase('booking_settings?id=eq.1&select=minimum_notice_hours,maximum_advance_days&limit=1'))[0] || {};
+    const maxAdvanceDays = Number(settings.maximum_advance_days ?? process.env.BOOKING_MAX_ADVANCE_DAYS ?? 365);
+    const minimumNoticeHours = Number(settings.minimum_notice_hours ?? process.env.BOOKING_MIN_NOTICE_HOURS ?? 0);
+    if (Number.isNaN(requestedAt.getTime()) || requestedAt.getTime() < Date.now() + minimumNoticeHours * 60 * 60 * 1000) return json(res, 400, { error: minimumNoticeHours ? `Bookings require at least ${minimumNoticeHours} hours notice.` : 'Please choose a future appointment date and time.' });
+    if (requestedAt.getTime() > Date.now() + maxAdvanceDays * 24 * 60 * 60 * 1000) return json(res, 400, { error: `Bookings can be made up to ${maxAdvanceDays} days in advance.` });
 
     const services = await supabase(`services?${serviceId ? `id=eq.${encodeURIComponent(serviceId)}` : `slug=eq.${encodeURIComponent(serviceSlug)}`}&is_active=eq.true&select=id,name,slug,duration_minutes`);
     const service = services[0];
@@ -30,13 +39,13 @@ module.exports = async function handler(req, res) {
     if (blocked.length) return json(res, 409, { error: 'That date is not available.' });
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
     const rules = await supabase(`availability_rules?weekday=eq.${weekday}&is_active=eq.true&select=start_time,end_time`);
-    const inRule = rules.some((rule) => String(time) >= String(rule.start_time).slice(0, 5) && String(time) < String(rule.end_time).slice(0, 5));
-    if (!inRule) return json(res, 409, { error: 'That time is outside Maeva’s availability.' });
-    const blockedTimes = await supabase(`blocked_times?blocked_date=eq.${date}&select=start_time,end_time`);
-    if (blockedTimes.some((slot) => String(time) >= String(slot.start_time).slice(0, 5) && String(time) < String(slot.end_time).slice(0, 5))) return json(res, 409, { error: 'That time is not available.' });
     const [hours, minutes] = time.split(':').map(Number);
     const requestedStart = hours * 60 + minutes;
     const requestedEnd = requestedStart + Number(service.duration_minutes || 180);
+    const inRule = rules.some((rule) => requestedStart >= toMinutes(rule.start_time) && requestedEnd <= toMinutes(rule.end_time));
+    if (!inRule) return json(res, 409, { error: 'That time is outside Maeva’s availability.' });
+    const blockedTimes = await supabase(`blocked_times?blocked_date=eq.${date}&select=start_time,end_time`);
+    if (blockedTimes.some((slot) => requestedStart < toMinutes(slot.end_time) && requestedEnd > toMinutes(slot.start_time))) return json(res, 409, { error: 'That time is not available.' });
     const conflicts = await supabase(`bookings?appointment_date=eq.${date}&status=not.in.(cancelled)&select=appointment_time,duration_minutes`);
     if (conflicts.some((item) => { const [h, m] = String(item.appointment_time).slice(0, 5).split(':').map(Number); const start = h * 60 + m; const end = start + Number(item.duration_minutes || 180); return requestedStart < end && requestedEnd > start; })) return json(res, 409, { error: 'That time overlaps another appointment. Please choose another slot.' });
 
@@ -45,16 +54,21 @@ module.exports = async function handler(req, res) {
     if (!existing) await supabase(`customers?id=eq.${customer.id}`, { method: 'PATCH', body: JSON.stringify({ updated_at: new Date().toISOString() }) });
     const { token, hash, ciphertext } = tokenPair();
     const total = Number(length.price) + optionsSnapshot.reduce((sum, option) => sum + option.price_delta, 0);
-    const reservationFee = Number(input.reservationFee || 20);
+    const reservationFee = RESERVATION_FEE;
     const booking = (await supabase('bookings', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ customer_id: customer.id, service_id: service.id, service_name_snapshot: service.name, length_name_snapshot: length.name, options_snapshot: optionsSnapshot, appointment_date: date, appointment_time: time, duration_minutes: service.duration_minutes, total_price: total, reservation_fee: reservationFee, remaining_balance: Math.max(0, total - reservationFee), access_token_hash: hash, access_token_ciphertext: ciphertext, customer_notes: clean(input.notes, 1000) }) }))[0];
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
     const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
-    const html = `<p>Hi ${fullName},</p><p>Your Hair by Maeva booking request <strong>${booking.booking_number}</strong> has been received.</p><p>${service.name} · ${length.name}<br>${date} at ${time}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
+    const html = `<p>Hi ${escapeHtml(fullName)},</p><p>Your Hair by Maeva booking request <strong>${escapeHtml(booking.booking_number)}</strong> has been received.</p><p>${escapeHtml(service.name)} · ${escapeHtml(length.name)}<br>${escapeHtml(date)} at ${escapeHtml(time)}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
     const customerEmailSent = await trySendEmail({ to: email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number}`, html });
-    const adminEmailSent = process.env.ADMIN_EMAIL ? await trySendEmail({ to: adminRecipients(), replyTo: email, subject: `New Hair by Maeva booking — ${booking.booking_number}`, html: `<p>New booking from ${fullName} (${email}).</p>${html}` }) : false;
-    return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl: manageUrl, emailSent: customerEmailSent, adminEmailSent });
+    const adminEmailSent = process.env.ADMIN_EMAIL ? await trySendEmail({ to: adminRecipients(), replyTo: email, subject: `New Hair by Maeva booking — ${booking.booking_number}`, html: `<p>New booking from ${escapeHtml(fullName)} (${escapeHtml(email)}).</p>${html}` }) : false;
+    return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl: manageUrl, totalPrice: total, reservationFee, remainingBalance: Math.max(0, total - reservationFee), emailSent: customerEmailSent, adminEmailSent });
   } catch (error) {
     console.error(error);
     return json(res, 500, { error: 'We could not save that booking. Please try again.' });
   }
 };
+
+function toMinutes(value) {
+  const [hours, minutes] = String(value).slice(0, 5).split(':').map(Number);
+  return hours * 60 + minutes;
+}

@@ -69,6 +69,10 @@ function clean(value, max = 500) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
 async function sendEmail({ to, subject, html, replyTo }) {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -88,7 +92,7 @@ async function trySendTemplatedEmail({ templateKey, variables = {}, ...fallback 
   try {
     const templates = await supabase(`email_templates?template_key=eq.${encodeURIComponent(templateKey)}&is_active=eq.true&select=subject,html_body&limit=1`);
     if (templates[0]) {
-      const replace = (value) => String(value || '').replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, key) => String(variables[key] ?? ''));
+      const replace = (value) => String(value || '').replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, key) => escapeHtml(variables[key] ?? ''));
       message = { ...fallback, subject: replace(templates[0].subject), html: replace(templates[0].html_body) };
     }
   } catch (error) { console.error('Email template lookup failed:', error.message); }
@@ -111,4 +115,4 @@ async function requireAdmin(req) {
   return user;
 }
 
-module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail, trySendTemplatedEmail };
+module.exports = { adminRecipients, body, clean, decryptToken, env, escapeHtml, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail, trySendTemplatedEmail };

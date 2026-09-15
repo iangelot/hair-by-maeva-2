@@ -1,5 +1,5 @@
 const crypto = require('node:crypto');
-const { adminRecipients, body, clean, env, json, supabase, trySendEmail } = require('./_lib');
+const { adminRecipients, body, clean, env, escapeHtml, json, supabase, trySendEmail } = require('./_lib');
 
 const getBooking = async (token) => {
   const hash = crypto.createHash('sha256').update(token).digest('hex');
@@ -19,12 +19,13 @@ module.exports = async function handler(req, res) {
     if (action === 'cancel') {
       await supabase(`bookings?id=eq.${encodeURIComponent(booking.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() }) });
       const customer = (await supabase(`customers?id=eq.${encodeURIComponent(booking.customer_id)}&select=full_name,email`))[0];
-      if (customer?.email) await trySendEmail({ to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number} cancelled`, html: `<p>Hi ${customer.full_name},</p><p>Your booking <strong>${booking.booking_number}</strong> has been cancelled as requested.</p>` });
-      if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer?.email, subject: `Booking cancelled — ${booking.booking_number}`, html: `<p>Booking ${booking.booking_number} was cancelled by the customer.</p>` });
+      if (customer?.email) await trySendEmail({ to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number} cancelled`, html: `<p>Hi ${escapeHtml(customer.full_name)},</p><p>Your booking <strong>${escapeHtml(booking.booking_number)}</strong> has been cancelled as requested.</p>` });
+      if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer?.email, subject: `Booking cancelled — ${booking.booking_number}`, html: `<p>Booking ${escapeHtml(booking.booking_number)} was cancelled by the customer.</p>` });
       return json(res, 200, { ok: true, status: 'cancelled' });
     }
     const date = clean(input.date, 10); const time = clean(input.time, 5);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return json(res, 400, { error: 'Choose a valid new date and time.' });
+    if (Number(time.slice(3, 5)) % 30 !== 0) return json(res, 400, { error: 'Please choose a 30-minute appointment slot.' });
     const requested = new Date(`${date}T${time}:00`); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
     const [rules, blocked, blockedTimes, conflicts] = await Promise.all([
@@ -41,7 +42,7 @@ module.exports = async function handler(req, res) {
     const customer = (await supabase(`customers?id=eq.${encodeURIComponent(booking.customer_id)}&select=full_name,email`))[0];
     if (customer?.email) {
       const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
-      const html = `<p>Hi ${customer.full_name},</p><p>Your booking <strong>${booking.booking_number}</strong> has been moved to ${date} at ${time}.</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
+      const html = `<p>Hi ${escapeHtml(customer.full_name)},</p><p>Your booking <strong>${escapeHtml(booking.booking_number)}</strong> has been moved to ${escapeHtml(date)} at ${escapeHtml(time)}.</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
       await trySendEmail({ to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number} rescheduled`, html });
       if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer.email, subject: `Booking rescheduled — ${booking.booking_number}`, html });
     }
