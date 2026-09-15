@@ -136,12 +136,8 @@ async function loadPublicContent() {
     if (!response.ok) return;
     const data = await response.json();
     if (Array.isArray(data.policies) && data.policies.length) {
-      document.querySelectorAll('.policy-list details').forEach((detail, index) => {
-        const policy = data.policies[index];
-        if (!policy) return;
-        detail.querySelector('summary').firstChild.textContent = policy.title + ' ';
-        detail.querySelector('p').textContent = policy.body;
-      });
+      const policyList = document.querySelector('.policy-list'); policyList.replaceChildren();
+      data.policies.forEach((policy, index) => { const detail = document.createElement('details'); if (index === 0) detail.open = true; const summary = document.createElement('summary'); summary.append(policy.title, ' ', Object.assign(document.createElement('span'), { textContent: '＋' })); const body = document.createElement('p'); body.textContent = policy.body; detail.append(summary, body); policyList.append(detail); });
     }
     if (Array.isArray(data.services) && data.services.length) {
       data.services.forEach((service, index) => {
