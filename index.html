@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Hair by Maeva — Chicago-based braiding specialist creating detailed, long-lasting protective styles." />
+    <title>Hair by Maeva — Protective styles, made beautifully.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="figma-overrides.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header" aria-label="Main navigation">
+        <a class="wordmark" href="#home">HAIR BY MAEVA</a>
+        <button class="menu-button" aria-label="Open menu" aria-expanded="false"><span></span><span></span></button>
+        <nav class="nav-drawer" aria-label="Primary">
+          <button class="drawer-close" aria-label="Close menu">×</button>
+          <a href="#home">HOME</a><a href="#services">SERVICES &amp; PRICING</a><a href="#policies">GUIDELINES &amp; POLICIES</a><a href="#gallery">GALLERY</a><a href="#contact">CONTACT</a>
+          <a class="drawer-book" href="#booking">BOOK</a>
+        </nav>
+      </header>
+
+      <main>
+        <section id="home" class="hero">
+          <div class="hero-image" role="img" aria-label="Braided hairstyle portrait"></div>
+          <div class="hero-wash"></div>
+          <p class="eyebrow hero-mark">HAIR BY MAEVA</p>
+          <div class="hero-copy">
+            <h1>PROTECTIVE<br /><em>STYLES,</em><br />MADE BEAUTIFULLY.</h1>
+            <p>Chicago based braiding specialist creating detailed, long-lasting styles tailored to you.</p>
+          </div>
+          <div class="hero-actions"><a class="pill pill-light" href="#booking">BOOK AN APPOINTMENT</a><a class="text-link" href="#services">VIEW SERVICES <span>↓</span></a></div>
+        </section>
+
+        <section id="services" class="section services-section">
+          <div class="section-heading"><p class="eyebrow">SERVICES &amp; PRICING</p><h2>Quality styles,<br /><em>best pricing.</em></h2></div>
+          <div class="filter-row" role="tablist" aria-label="Service categories"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="braids">Braids</button><button class="filter" data-filter="twists">Twists</button><button class="filter" data-filter="locs">Locs</button></div>
+          <div class="service-list">
+            <article class="service-card" data-category="twists"><div class="service-image image-one"></div><div class="service-info"><h3>Senegalese Twist</h3><p class="service-from">FROM $200</p><button class="service-book" data-service="Senegalese Twist">BOOK NOW <span>↗</span></button></div></article>
+            <article class="service-card" data-category="braids"><div class="service-image image-two"></div><div class="service-info"><h3>Boho Knotless</h3><p class="service-from">FROM $180</p><button class="service-book" data-service="Boho Knotless">BOOK NOW <span>↗</span></button></div></article>
+            <article class="service-card" data-category="locs"><div class="service-image image-three"></div><div class="service-info"><h3>Soft Locs</h3><p class="service-from">FROM $220</p><button class="service-book" data-service="Soft Locs">BOOK NOW <span>↗</span></button></div></article>
+          </div>
+        </section>
+
+        <section id="gallery" class="section gallery-section"><div class="section-heading"><p class="eyebrow">A LITTLE INSPIRATION</p><h2>Made to be<br /><em>remembered.</em></h2></div><div class="gallery-grid"><div class="gallery-tile tall image-one"></div><div class="gallery-tile image-two"></div><div class="gallery-tile image-three"></div><div class="gallery-tile wide image-four"></div></div></section>
+
+        <section id="policies" class="section policy-section"><div class="section-heading"><p class="eyebrow">BEFORE YOUR VISIT</p><h2>Good to<br /><em>know.</em></h2></div><div class="policy-list"><details open><summary>DEPOSIT <span>＋</span></summary><p>A $20 non-refundable deposit is required to secure your appointment. The deposit will be applied toward your total service balance.</p></details><details><summary>CANCELLATION &amp; RESCHEDULING <span>＋</span></summary><p>Please notify me at least 24–48 hours before your appointment. No-shows and late cancellations may result in your deposit being forfeited.</p></details><details><summary>LATE ARRIVAL <span>＋</span></summary><p>There is a 15-minute grace period. After 15 minutes, a $25 late fee will be added.</p></details><details><summary>ADDRESS &amp; HOURS <span>＋</span></summary><p>Your appointment address will be provided after your deposit has been verified. Chicago appointments are available Tuesday–Saturday.</p></details></div></section>
+
+        <section id="contact" class="section contact-section"><div class="contact-copy"><p class="eyebrow">QUESTIONS?</p><h2>Let’s get<br /><em>you booked.</em></h2><p>Have a question about a style, pricing, availability, or your appointment? I’m here to help.</p><form id="contact-form" class="contact-form"><label>NAME<input required name="name" placeholder="Your name" /></label><label>EMAIL<input required type="email" name="email" placeholder="you@email.com" /></label><label>TOPIC<select name="topic"><option>General Question</option><option>Hairstyle / Pricing</option><option>Booking Help</option><option>Cancellation / Rescheduling</option><option>Payment</option></select></label><label>MESSAGE<textarea required name="message" rows="3" placeholder="How can I help?"></textarea></label><button class="pill pill-dark" type="submit">SEND A MESSAGE</button><p class="form-status" aria-live="polite"></p></form></div><div class="contact-note"><p>CHICAGO, IL</p><p>Instagram · TikTok</p><p>hello@hairbymaeva.com</p></div></section>
+
+        <section id="booking" class="booking-panel"><div><p class="eyebrow">READY WHEN YOU ARE</p><h2>Your next style<br /><em>starts here.</em></h2></div><button class="pill pill-dark" id="start-booking">START BOOKING <span>↗</span></button></section>
+      </main>
+      <footer><span>HAIR BY MAEVA</span><span>© 2026 · CHICAGO</span></footer>
+    </div>
+
+    <div class="modal-backdrop" id="booking-modal" aria-hidden="true"><div class="booking-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" aria-label="Close booking">×</button><div class="modal-step" data-step="service"><p class="eyebrow">01 / 04</p><h2 id="modal-title">Choose your<br /><em>service.</em></h2><div class="modal-options"><button data-value="Senegalese Twist">Senegalese Twist <span>FROM $200</span></button><button data-value="Boho Knotless">Boho Knotless <span>FROM $180</span></button><button data-value="Soft Locs">Soft Locs <span>FROM $220</span></button></div></div><div class="modal-step hidden" data-step="length"><p class="eyebrow">02 / 04</p><h2>Choose your<br /><em>length.</em></h2><div class="length-grid"><button data-value="Bob — $200">BOB<small>$200</small></button><button data-value="Middle — $230">MIDDLE<small>$230</small></button><button data-value="Waist — $260">WAIST<small>$260</small></button><button data-value="Butt — $300">BUTT<small>$300</small></button></div><button class="modal-next">CONTINUE ↗</button></div><div class="modal-step hidden" data-step="details"><p class="eyebrow">03 / 04</p><h2>Your<br /><em>details.</em></h2><form id="booking-form"><label>DATE<input required type="date" name="date" /></label><label>TIME<input required type="time" name="time" /></label><label>FULL NAME<input required name="name" placeholder="Your name" /></label><label>EMAIL<input required type="email" name="email" placeholder="you@email.com" /></label><label>PHONE<input required name="phone" placeholder="(123) 456-7890" /></label><button class="modal-next" type="submit">REVIEW BOOKING ↗</button></form></div><div class="modal-step hidden" data-step="review"><p class="eyebrow">04 / 04</p><h2>Review your<br /><em>booking.</em></h2><div class="review-card"><p id="review-service">—</p><p id="review-length">—</p><p id="review-date">—</p><p id="review-time">—</p><p class="review-line"><span>Reservation fee</span><strong>$20</strong></p><p class="review-note">Payment instructions will appear after you submit your booking. Your appointment is not confirmed until payment is verified.</p></div><button class="modal-next" id="submit-booking">SUBMIT REQUEST ↗</button></div><div class="modal-success hidden"><div class="success-mark">✓</div><p class="eyebrow">REQUEST RECEIVED</p><h2>We’ll be in<br /><em>touch soon.</em></h2><p>Your booking request is saved. Check your email for next steps.</p><button class="modal-next modal-close-success">BACK TO HOME</button></div></div></div>
+    <script src="script.js"></script>
+  </body>
+</html>
