@@ -1,1 +1,62 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin — Hair by Maeva</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="figma-overrides.css"></head><body><main class="section admin-shell"><p class="eyebrow">HAIR BY MAEVA / ADMIN</p><h1>Business<br><em>control center.</em></h1><div class="admin-grid"><article><span class="eyebrow">TODAY</span><strong>—</strong><p>Appointments</p></article><article><span class="eyebrow">PAYMENTS</span><strong>—</strong><p>Awaiting verification</p></article><article><span class="eyebrow">BOOKINGS</span><strong>—</strong><p>Upcoming</p></article></div><section class="admin-card"><h2>Connect Supabase to load your dashboard.</h2><p>This protected route is ready for Supabase Auth, RLS-backed bookings, services, payments, availability, CMS content, and customer messages.</p></section></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — Hair by Maeva</title>
+  <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="figma-overrides.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <main class="section admin-shell">
+    <p class="eyebrow">HAIR BY MAEVA / ADMIN</p>
+    <div id="login-panel" class="admin-card">
+      <h1>Business<br><em>control center.</em></h1>
+      <p>Sign in with the Supabase Auth account Maeva uses for administration.</p>
+      <form id="login-form" class="admin-form"><label>EMAIL<input required type="email" name="email" autocomplete="email"></label><label>PASSWORD<input required type="password" name="password" autocomplete="current-password"></label><button class="pill pill-dark" type="submit">SIGN IN ↗</button><p id="login-status" class="form-status"></p></form>
+    </div>
+    <section id="dashboard" class="hidden">
+      <div class="admin-toolbar"><div><p class="eyebrow">SIGNED IN</p><h1>Maeva’s<br><em>dashboard.</em></h1></div><button id="logout" class="pill pill-dark">SIGN OUT</button></div>
+      <div class="admin-grid"><article><span class="eyebrow">TODAY</span><strong id="today-count">—</strong><p>Appointments</p></article><article><span class="eyebrow">PAYMENTS</span><strong id="payment-count">—</strong><p>Awaiting verification</p></article><article><span class="eyebrow">UPCOMING</span><strong id="upcoming-count">—</strong><p>Bookings</p></article></div>
+      <section class="admin-card admin-section"><div class="admin-section-head"><h2>Bookings</h2><button class="text-link admin-refresh" type="button">REFRESH ↻</button></div><div class="admin-table-wrap"><table><thead><tr><th>Booking</th><th>Customer</th><th>Appointment</th><th>Payment</th><th>Action</th></tr></thead><tbody id="booking-rows"><tr><td colspan="5">Loading…</td></tr></tbody></table></div></section>
+      <section class="admin-card admin-section"><div class="admin-section-head"><h2>Services</h2><button class="text-link admin-refresh" type="button">REFRESH ↻</button></div><div id="service-list" class="admin-list">Loading…</div></section>
+      <section class="admin-card admin-section"><div class="admin-section-head"><h2>Policies</h2><button class="text-link admin-refresh" type="button">REFRESH ↻</button></div><div id="policy-list" class="admin-list">Loading…</div></section>
+      <p id="dashboard-status" class="form-status"></p>
+    </section>
+  </main>
+  <script>
+    const SUPABASE_URL = 'https://ebljbhjtnazslbdkpmbu.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_1xA2v-KNZH11UpcmzzaHCQ_pAg7KMzd';
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const loginPanel = document.querySelector('#login-panel'); const dashboard = document.querySelector('#dashboard'); const status = document.querySelector('#dashboard-status');
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+    const setStatus = (text, error = false) => { status.textContent = text; status.style.color = error ? '#a23939' : ''; };
+    async function loadDashboard() {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: bookings, error } = await client.from('bookings').select('id,booking_number,service_name_snapshot,length_name_snapshot,appointment_date,appointment_time,total_price,reservation_fee,payment_status,status,customers(full_name,email)').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true }).limit(100);
+      if (error) { setStatus(error.message, true); return; }
+      const rows = bookings || [];
+      document.querySelector('#today-count').textContent = rows.filter((item) => item.appointment_date === today && item.status !== 'cancelled').length;
+      document.querySelector('#payment-count').textContent = rows.filter((item) => item.payment_status === 'payment_submitted').length;
+      document.querySelector('#upcoming-count').textContent = rows.filter((item) => item.appointment_date >= today && item.status !== 'cancelled').length;
+      document.querySelector('#booking-rows').innerHTML = rows.length ? rows.map((item) => `<tr><td><strong>${escapeHtml(item.booking_number)}</strong><small>${escapeHtml(item.service_name_snapshot)} · ${escapeHtml(item.length_name_snapshot)}</small></td><td>${escapeHtml(item.customers?.full_name)}<small>${escapeHtml(item.customers?.email)}</small></td><td>${escapeHtml(item.appointment_date)}<small>${escapeHtml(item.appointment_time)}</small></td><td><span class="status-pill status-${escapeHtml(item.payment_status)}">${escapeHtml(item.payment_status.replaceAll('_',' '))}</span></td><td>${item.payment_status === 'payment_submitted' ? `<button class="admin-action" data-action="confirm" data-id="${item.id}">CONFIRM</button><button class="admin-action danger" data-action="reject" data-id="${item.id}">NOT RECEIVED</button>` : escapeHtml(item.status.replaceAll('_',' '))}</td></tr>`).join('') : '<tr><td colspan="5">No bookings yet.</td></tr>';
+      document.querySelectorAll('.admin-action').forEach((button) => button.addEventListener('click', () => updatePayment(button.dataset.id, button.dataset.action)));
+      const { data: services } = await client.from('services').select('id,name,slug,is_active,display_order,service_lengths(name,price)').order('display_order');
+      document.querySelector('#service-list').innerHTML = (services || []).map((item) => `<article class="admin-list-item"><div><strong>${escapeHtml(item.name)}</strong><p>${item.service_lengths.map((length) => `${escapeHtml(length.name)} $${Number(length.price).toFixed(0)}`).join(' · ')}</p></div><span class="status-pill">${item.is_active ? 'ACTIVE' : 'HIDDEN'}</span></article>`).join('') || 'No services configured.';
+      const { data: policies } = await client.from('policies').select('id,policy_key,title,body,is_visible,display_order').order('display_order');
+      document.querySelector('#policy-list').innerHTML = (policies || []).map((item) => `<details class="policy-editor"><summary>${escapeHtml(item.title)} <span>${item.is_visible ? 'VISIBLE' : 'HIDDEN'} ＋</span></summary><form data-policy-id="${item.id}"><label>TITLE<input name="title" value="${escapeHtml(item.title)}"></label><label>CONTENT<textarea name="body" rows="5">${escapeHtml(item.body)}</textarea></label><button class="pill pill-dark" type="submit">SAVE POLICY</button></form></details>`).join('') || 'No policies configured.';
+      document.querySelectorAll('.policy-editor form').forEach((form) => form.addEventListener('submit', savePolicy));
+    }
+    async function updatePayment(id, action) {
+      const confirmed = action === 'confirm'; const paymentStatus = confirmed ? 'payment_verified' : 'payment_not_received'; const bookingStatus = confirmed ? 'confirmed' : 'pending_payment';
+      setStatus('Saving payment status…');
+      const { error } = await client.from('bookings').update({ payment_status: paymentStatus, status: bookingStatus, confirmed_at: confirmed ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) setStatus(error.message, true); else { setStatus('Payment status updated.'); loadDashboard(); }
+    }
+    async function savePolicy(event) { event.preventDefault(); const form = event.currentTarget; const values = Object.fromEntries(new FormData(form)); const { error } = await client.from('policies').update({ title: values.title, body: values.body }).eq('id', form.dataset.policyId); setStatus(error ? error.message : 'Policy saved.', Boolean(error)); }
+    document.querySelector('#login-form').addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; const result = await client.auth.signInWithPassword({ email: form.email.value, password: form.password.value }); if (result.error) document.querySelector('#login-status').textContent = result.error.message; else { loginPanel.classList.add('hidden'); dashboard.classList.remove('hidden'); loadDashboard(); } });
+    document.querySelector('#logout').addEventListener('click', async () => { await client.auth.signOut(); dashboard.classList.add('hidden'); loginPanel.classList.remove('hidden'); });
+    document.querySelectorAll('.admin-refresh').forEach((button) => button.addEventListener('click', loadDashboard));
+    client.auth.getUser().then(({ data }) => { if (data.user) { loginPanel.classList.add('hidden'); dashboard.classList.remove('hidden'); loadDashboard(); } });
+  </script>
+</body>
+</html>
