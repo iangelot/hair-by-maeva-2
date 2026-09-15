@@ -289,3 +289,12 @@ insert into public.website_sections (page_slug, section_key, content, display_or
   ('home','services','{"eyebrow":"SERVICES & PRICING","title":"Quality styles, best pricing."}'::jsonb,2),
   ('home','booking','{"eyebrow":"READY WHEN YOU ARE","title":"Your next style starts here."}'::jsonb,3)
 on conflict (page_slug,section_key) do nothing;
+insert into public.email_templates (template_key, subject, html_body) values
+  ('payment_submitted','Hair by Maeva — Payment Submitted','<p>Hi {{customer_name}},</p><p>Your payment is awaiting verification.</p>'),
+  ('payment_confirmed','Hair by Maeva — Appointment Confirmed','<p>Your appointment is confirmed.</p>'),
+  ('booking_confirmation','Hair by Maeva — Booking Received','<p>Your booking request was received.</p>'),
+  ('cancellation','Hair by Maeva — Booking Cancelled','<p>Your booking has been cancelled.</p>'),
+  ('rescheduling','Hair by Maeva — Booking Rescheduled','<p>Your booking was rescheduled.</p>'),
+  ('new_booking_admin','New Hair by Maeva Booking','<p>A new booking was received.</p>'),
+  ('contact_notification','New Hair by Maeva Contact Message','<p>A new contact message was received.</p>')
+on conflict (template_key) do nothing;
