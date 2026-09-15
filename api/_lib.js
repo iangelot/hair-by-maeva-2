@@ -83,6 +83,18 @@ async function trySendEmail(options) {
   try { await sendEmail(options); return true; } catch (error) { console.error('Transactional email failed:', error.message); return false; }
 }
 
+async function trySendTemplatedEmail({ templateKey, variables = {}, ...fallback }) {
+  let message = fallback;
+  try {
+    const templates = await supabase(`email_templates?template_key=eq.${encodeURIComponent(templateKey)}&is_active=eq.true&select=subject,html_body&limit=1`);
+    if (templates[0]) {
+      const replace = (value) => String(value || '').replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, key) => String(variables[key] ?? ''));
+      message = { ...fallback, subject: replace(templates[0].subject), html: replace(templates[0].html_body) };
+    }
+  } catch (error) { console.error('Email template lookup failed:', error.message); }
+  return trySendEmail(message);
+}
+
 function adminRecipients() {
   return [env('ADMIN_EMAIL'), ...(process.env.ADMIN_ROUTING_EMAIL ? [process.env.ADMIN_ROUTING_EMAIL] : [])];
 }
@@ -99,4 +111,4 @@ async function requireAdmin(req) {
   return user;
 }
 
-module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail };
+module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail, trySendTemplatedEmail };

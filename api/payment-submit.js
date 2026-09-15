@@ -1,5 +1,5 @@
 const crypto = require('node:crypto');
-const { adminRecipients, body, clean, env, json, supabase, trySendEmail } = require('./_lib');
+const { adminRecipients, body, clean, env, json, supabase, trySendEmail, trySendTemplatedEmail } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
     if (customer?.email) {
       const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
       const details = `<p>${booking.service_name_snapshot} · ${booking.length_name_snapshot}<br>${booking.appointment_date} at ${booking.appointment_time}<br>Total: $${Number(booking.total_price).toFixed(2)} · Deposit: $${Number(booking.reservation_fee).toFixed(2)} · Remaining: $${Number(booking.remaining_balance).toFixed(2)}</p>`;
-      await trySendEmail({ to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: 'Hair by Maeva — Payment Submitted', html: `<p>Hi ${customer.full_name},</p><p>We received your payment submission for booking <strong>${booking.booking_number}</strong>. It is awaiting manual verification.</p>${details}<p>Payment method: ${method.name}</p><p><a href="${manageUrl}">View / manage my booking</a></p>` });
+      await trySendTemplatedEmail({ templateKey: 'payment_submitted', to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: 'Hair by Maeva — Payment Submitted', html: `<p>Hi ${customer.full_name},</p><p>We received your payment submission for booking <strong>${booking.booking_number}</strong>. It is awaiting manual verification.</p>${details}<p>Payment method: ${method.name}</p><p><a href="${manageUrl}">View / manage my booking</a></p>`, variables: { booking_number: booking.booking_number, customer_name: customer.full_name, service: booking.service_name_snapshot, length: booking.length_name_snapshot, date: booking.appointment_date, time: booking.appointment_time, total: Number(booking.total_price).toFixed(2), deposit: Number(booking.reservation_fee).toFixed(2), remaining: Number(booking.remaining_balance).toFixed(2), payment_method: method.name, manage_url: manageUrl } });
       if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer.email, subject: `Payment submitted — ${booking.booking_number}`, html: `<p>${customer.full_name} submitted a ${method.name} payment for booking ${booking.booking_number}.</p>${details}` });
     }
     return json(res, 200, { ok: true, status: 'payment_submitted', bookingNumber: booking.booking_number });
