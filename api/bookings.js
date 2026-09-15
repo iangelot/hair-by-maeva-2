@@ -23,6 +23,9 @@ module.exports = async function handler(req, res) {
     const lengths = service ? await supabase(`service_lengths?service_id=eq.${encodeURIComponent(service.id)}&${lengthId ? `id=eq.${encodeURIComponent(lengthId)}` : `name=eq.${encodeURIComponent(lengthName)}`}&is_active=eq.true&select=id,name,price`) : [];
     const length = lengths[0];
     if (!service || !length) return json(res, 400, { error: 'That service or length is no longer available.' });
+    const requestedOptions = Array.isArray(input.options) ? input.options.filter((item) => typeof item === 'string').slice(0, 20) : [];
+    const configuredOptions = await supabase(`service_options?service_id=eq.${encodeURIComponent(service.id)}&is_active=eq.true&select=name,price_delta`);
+    const optionsSnapshot = configuredOptions.filter((option) => requestedOptions.includes(option.name)).map((option) => ({ name: option.name, price_delta: Number(option.price_delta) }));
     const blocked = await supabase(`blocked_dates?blocked_date=eq.${date}&select=id`);
     if (blocked.length) return json(res, 409, { error: 'That date is not available.' });
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
@@ -41,9 +44,9 @@ module.exports = async function handler(req, res) {
     const customer = existing || (await supabase('customers', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ full_name: fullName, email, phone, location: clean(input.location, 180) }) }))[0];
     if (!existing) await supabase(`customers?id=eq.${customer.id}`, { method: 'PATCH', body: JSON.stringify({ updated_at: new Date().toISOString() }) });
     const { token, hash, ciphertext } = tokenPair();
-    const total = Number(length.price);
+    const total = Number(length.price) + optionsSnapshot.reduce((sum, option) => sum + option.price_delta, 0);
     const reservationFee = Number(input.reservationFee || 20);
-    const booking = (await supabase('bookings', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ customer_id: customer.id, service_id: service.id, service_name_snapshot: service.name, length_name_snapshot: length.name, appointment_date: date, appointment_time: time, duration_minutes: service.duration_minutes, total_price: total, reservation_fee: reservationFee, remaining_balance: Math.max(0, total - reservationFee), access_token_hash: hash, access_token_ciphertext: ciphertext, customer_notes: clean(input.notes, 1000) }) }))[0];
+    const booking = (await supabase('bookings', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ customer_id: customer.id, service_id: service.id, service_name_snapshot: service.name, length_name_snapshot: length.name, options_snapshot: optionsSnapshot, appointment_date: date, appointment_time: time, duration_minutes: service.duration_minutes, total_price: total, reservation_fee: reservationFee, remaining_balance: Math.max(0, total - reservationFee), access_token_hash: hash, access_token_ciphertext: ciphertext, customer_notes: clean(input.notes, 1000) }) }))[0];
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
     const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
     const html = `<p>Hi ${fullName},</p><p>Your Hair by Maeva booking request <strong>${booking.booking_number}</strong> has been received.</p><p>${service.name} · ${length.name}<br>${date} at ${time}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;

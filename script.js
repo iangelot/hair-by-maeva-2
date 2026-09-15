@@ -15,6 +15,7 @@ document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('clic
 
 const modal = document.querySelector('#booking-modal');
 const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {} };
+const catalogOptions = {};
 selected.booking = null;
 const catalogLengths = {
   'Senegalese Twist': { Bob: 200, Middle: 230, Waist: 260, Butt: 300 },
@@ -34,6 +35,10 @@ const syncLengthOptions = () => {
   });
   selected.length = '';
   document.querySelectorAll('.length-grid button').forEach((button) => button.classList.remove('picked'));
+  let optionWrap = document.querySelector('#service-options');
+  if (!optionWrap) { optionWrap = document.createElement('div'); optionWrap.id = 'service-options'; optionWrap.className = 'service-options'; document.querySelector('.length-grid').after(optionWrap); }
+  optionWrap.replaceChildren();
+  (catalogOptions[selected.service] || []).forEach((option) => { const label = document.createElement('label'); label.className = 'service-option'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = 'service-option'; checkbox.value = option.name; checkbox.dataset.delta = option.price_delta; label.append(checkbox, document.createTextNode(`${option.name}${Number(option.price_delta) ? ` (+$${Number(option.price_delta).toFixed(0)})` : ''}`)); optionWrap.append(label); });
 };
 const paymentStep = document.createElement('div');
 paymentStep.className = 'modal-step hidden';
@@ -75,11 +80,17 @@ document.querySelectorAll('.length-grid button').forEach((btn) => btn.addEventLi
 document.querySelector('.modal-step[data-step="length"] .modal-next').addEventListener('click', () => { if (!selected.length) return alert('Please choose a length.'); showStep('details'); });
 
 document.querySelector('#booking-form').addEventListener('submit', (e) => {
-  e.preventDefault(); selected.details = Object.fromEntries(new FormData(e.target));
+  e.preventDefault(); selected.details = Object.fromEntries(new FormData(e.target)); selected.details.options = [...document.querySelectorAll('input[name="service-option"]:checked')].map((input) => input.value);
   document.querySelector('#review-service').textContent = selected.service;
   document.querySelector('#review-length').textContent = selected.length;
   document.querySelector('#review-date').textContent = selected.details.date;
   document.querySelector('#review-time').textContent = selected.details.time;
+  const servicePrice = Number((selected.length.match(/\$(\d+(?:\.\d+)?)/) || [0, 0])[1]); const optionTotal = (catalogOptions[selected.service] || []).filter((option) => selected.details.options.includes(option.name)).reduce((sum, option) => sum + Number(option.price_delta || 0), 0); const reviewCard = document.querySelector('.review-card');
+  document.querySelector('#review-options')?.remove();
+  if (selected.details.options.length) { const optionLine = document.createElement('p'); optionLine.id = 'review-options'; optionLine.textContent = `Options: ${selected.details.options.join(', ')}`; reviewCard.insertBefore(optionLine, reviewCard.querySelector('.review-line')); }
+  document.querySelector('#review-total')?.remove(); document.querySelector('#review-remaining')?.remove();
+  const totalLine = document.createElement('p'); totalLine.id = 'review-total'; totalLine.className = 'review-line'; totalLine.innerHTML = `<span>Total</span><strong>$${(servicePrice + optionTotal).toFixed(2)}</strong>`; reviewCard.insertBefore(totalLine, reviewCard.querySelector('.review-line'));
+  const remainingLine = document.createElement('p'); remainingLine.id = 'review-remaining'; remainingLine.className = 'review-line'; remainingLine.innerHTML = `<span>Remaining balance</span><strong>$${Math.max(0, servicePrice + optionTotal - 20).toFixed(2)}</strong>`; reviewCard.insertBefore(remainingLine, reviewCard.querySelector('.review-line'));
   showStep('review');
 });
 
@@ -143,6 +154,7 @@ async function loadPublicContent() {
       data.services.forEach((service, index) => {
         const lengths = Object.fromEntries((service.lengths || []).sort((a, b) => a.display_order - b.display_order).map((length) => [length.name, Number(length.price)]));
         catalogLengths[service.name] = lengths;
+        catalogOptions[service.name] = (service.options || []).filter((option) => option.is_active !== false);
         const card = document.querySelectorAll('.service-card')[index];
         if (card) {
           card.querySelector('h3').textContent = service.name;

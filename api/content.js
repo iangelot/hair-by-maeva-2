@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
       supabase('policies?is_visible=eq.true&select=policy_key,title,body,display_order&order=display_order.asc'),
       supabase('social_links?is_active=eq.true&select=label,url,display_order&order=display_order.asc'),
       supabase('website_sections?is_visible=eq.true&select=page_slug,section_key,content,display_order&order=display_order.asc'),
-      supabase('services?is_active=eq.true&select=id,name,slug,description,image_path,category:service_categories(name,slug),lengths:service_lengths(name,price,display_order)&order=display_order.asc'),
+      supabase('services?is_active=eq.true&select=id,name,slug,description,image_path,category:service_categories(name,slug),lengths:service_lengths(name,price,display_order),options:service_options(name,price_delta,display_order,is_active)&order=display_order.asc'),
       supabase('gallery_items?is_active=eq.true&select=id,image_path,caption,alt_text,category,display_order&order=display_order.asc'),
       supabase('service_categories?is_active=eq.true&select=id,name,slug,display_order&order=display_order.asc'),
     ]);
