@@ -153,6 +153,12 @@ async function loadPublicContent() {
         if (option) { option.dataset.value = service.name; option.firstChild.textContent = `${service.name} `; option.querySelector('span').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'VIEW DETAILS'; }
       });
     }
+    if (Array.isArray(data.categories) && data.categories.length) {
+      const filterRow = document.querySelector('.filter-row'); filterRow.replaceChildren();
+      const all = document.createElement('button'); all.className = 'filter active'; all.dataset.filter = 'all'; all.textContent = 'All'; filterRow.append(all);
+      data.categories.forEach((category) => { const button = document.createElement('button'); button.className = 'filter'; button.dataset.filter = category.slug; button.textContent = category.name; filterRow.append(button); });
+      filterRow.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => { filterRow.querySelectorAll('.filter').forEach((item) => item.classList.remove('active')); button.classList.add('active'); document.querySelectorAll('.service-card').forEach((card) => { card.style.display = button.dataset.filter === 'all' || card.dataset.category === button.dataset.filter ? '' : 'none'; }); }));
+    }
     const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
     if (heroSection?.content) {
       if (heroSection.content.description) document.querySelector('.hero-copy>p').textContent = heroSection.content.description;
