@@ -67,6 +67,10 @@ async function sendEmail({ to, subject, html, replyTo }) {
   return response.json();
 }
 
+async function trySendEmail(options) {
+  try { await sendEmail(options); return true; } catch (error) { console.error('Transactional email failed:', error.message); return false; }
+}
+
 function adminRecipients() {
   return [env('ADMIN_EMAIL'), ...(process.env.ADMIN_ROUTING_EMAIL ? [process.env.ADMIN_ROUTING_EMAIL] : [])];
 }
@@ -83,4 +87,4 @@ async function requireAdmin(req) {
   return user;
 }
 
-module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, tokenPair };
+module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, tokenPair, trySendEmail };

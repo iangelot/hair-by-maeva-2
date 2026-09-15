@@ -1,4 +1,4 @@
-const { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase } = require('./_lib');
+const { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, supabase, trySendEmail } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
@@ -18,9 +18,9 @@ module.exports = async function handler(req, res) {
       const manageToken = decryptToken(booking.access_token_ciphertext); const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(manageToken)}`; const details = `<p>${booking.service_name_snapshot} · ${booking.length_name_snapshot}<br>${booking.appointment_date} at ${booking.appointment_time}<br>Total: $${Number(booking.total_price).toFixed(2)} · Deposit: $${Number(booking.reservation_fee).toFixed(2)} · Remaining: $${Number(booking.remaining_balance).toFixed(2)}</p>`;
       const subject = confirmed ? `Hair by Maeva — Appointment ${booking.booking_number} Confirmed` : `Hair by Maeva — Payment not received for ${booking.booking_number}`;
       const message = confirmed ? 'Your payment has been verified and your appointment is confirmed.' : 'We could not verify this payment. Please contact Maeva if you believe this is an error.';
-      await sendEmail({ to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject, html: `<p>Hi ${customer.full_name},</p><p>${message}</p>${details}<p>Payment method: ${method?.name || 'Manual payment'}</p><p><a href="${manageUrl}">View / manage my booking</a></p>` });
+      await trySendEmail({ to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject, html: `<p>Hi ${customer.full_name},</p><p>${message}</p>${details}<p>Payment method: ${method?.name || 'Manual payment'}</p><p><a href="${manageUrl}">View / manage my booking</a></p>` });
     }
-    if (process.env.ADMIN_EMAIL) await sendEmail({ to: adminRecipients(), subject: `${confirmed ? 'Payment confirmed' : 'Payment not received'} — ${booking.booking_number}`, html: `<p>Booking ${booking.booking_number} was updated to ${status}.</p>` });
+    if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), subject: `${confirmed ? 'Payment confirmed' : 'Payment not received'} — ${booking.booking_number}`, html: `<p>Booking ${booking.booking_number} was updated to ${status}.</p>` });
     return json(res, 200, { ok: true, status });
   } catch (error) { console.error(error); return json(res, error.statusCode || 500, { error: error.statusCode ? error.message : 'Unable to update payment.' }); }
 };
