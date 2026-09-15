@@ -143,6 +143,20 @@ async function loadPublicContent() {
         detail.querySelector('p').textContent = policy.body;
       });
     }
+    if (Array.isArray(data.services) && data.services.length) {
+      data.services.forEach((service, index) => {
+        const lengths = Object.fromEntries((service.lengths || []).sort((a, b) => a.display_order - b.display_order).map((length) => [length.name, Number(length.price)]));
+        catalogLengths[service.name] = lengths;
+        const card = document.querySelectorAll('.service-card')[index];
+        if (card) {
+          card.querySelector('h3').textContent = service.name;
+          card.querySelector('.service-from').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'PRICING AVAILABLE SOON';
+          const book = card.querySelector('.service-book'); book.dataset.service = service.name;
+        }
+        const option = document.querySelectorAll('.modal-options button')[index];
+        if (option) { option.dataset.value = service.name; option.firstChild.textContent = `${service.name} `; option.querySelector('span').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'VIEW DETAILS'; }
+      });
+    }
     if (Array.isArray(data.socials) && data.socials.length) {
       const socialNode = document.querySelector('.contact-note p:nth-child(2)');
       socialNode.replaceChildren();
