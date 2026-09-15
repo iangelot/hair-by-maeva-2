@@ -282,7 +282,11 @@ insert into public.policies (policy_key, title, body, display_order) values
   ('deposit','DEPOSIT','$20 non-refundable deposit required to secure your appointment. Applied toward your total service balance.',1),
   ('payment','PAYMENT & VERIFICATION','We accept Cash App, Zelle, and PayPal. Your payment is manually verified before your appointment is confirmed.',2),
   ('cancellation','CANCELLATION & RESCHEDULING','Please notify Maeva at least 24–48 hours before your appointment. No-shows and late cancellations may forfeit the deposit.',3),
-  ('late-arrival','LATE ARRIVAL','There is a 15-minute grace period. After 15 minutes, a $25 late fee may apply.',4)
+  ('late-arrival','LATE ARRIVAL','There is a 15-minute grace period. After 15 minutes, a $25 late fee may apply.',4),
+  ('extra-guests','EXTRA GUESTS','Children are welcome. Any other guest must be approved in advance. Please contact Maeva if you plan to bring someone with you.',5),
+  ('address','ADDRESS','Your appointment address will be provided after your deposit has been verified. Check your confirmation email for appointment details.',6),
+  ('hours','HOURS','Appointments are available during the business hours configured by Maeva.',7),
+  ('booking-confirmation','BOOKING CONFIRMATION','After submitting your deposit, you will receive an email confirming that your payment is being verified. Once payment is verified, you will receive your official appointment confirmation.',8)
 on conflict (policy_key) do update set body=excluded.body;
 insert into public.website_sections (page_slug, section_key, content, display_order) values
   ('home','hero','{"title":"PROTECTIVE STYLES, MADE BEAUTIFULLY.","description":"Chicago based braiding specialist creating detailed, long-lasting styles tailored to you.","primaryCta":"BOOK AN APPOINTMENT","secondaryCta":"VIEW SERVICES ↓"}'::jsonb,1),
