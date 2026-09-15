@@ -298,3 +298,16 @@ insert into public.email_templates (template_key, subject, html_body) values
   ('new_booking_admin','New Hair by Maeva Booking','<p>A new booking was received.</p>'),
   ('contact_notification','New Hair by Maeva Contact Message','<p>A new contact message was received.</p>')
 on conflict (template_key) do nothing;
+
+-- Supabase Storage media bucket for hero, service, and gallery images.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('hair-media', 'hair-media', true, 10485760, array['image/jpeg','image/png','image/webp','image/avif']::text[])
+on conflict (id) do update set public = true, file_size_limit = 10485760, allowed_mime_types = excluded.allowed_mime_types;
+drop policy if exists "public read Hair by Maeva media" on storage.objects;
+create policy "public read Hair by Maeva media" on storage.objects for select to public using (bucket_id = 'hair-media');
+drop policy if exists "admins upload Hair by Maeva media" on storage.objects;
+create policy "admins upload Hair by Maeva media" on storage.objects for insert to authenticated with check (bucket_id = 'hair-media' and public.is_admin());
+drop policy if exists "admins update Hair by Maeva media" on storage.objects;
+create policy "admins update Hair by Maeva media" on storage.objects for update to authenticated using (bucket_id = 'hair-media' and public.is_admin()) with check (bucket_id = 'hair-media' and public.is_admin());
+drop policy if exists "admins delete Hair by Maeva media" on storage.objects;
+create policy "admins delete Hair by Maeva media" on storage.objects for delete to authenticated using (bucket_id = 'hair-media' and public.is_admin());
