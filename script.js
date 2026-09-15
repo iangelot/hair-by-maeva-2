@@ -163,6 +163,13 @@ async function loadPublicContent() {
       if (heroSection.content.primaryCta) document.querySelector('.hero-actions .pill').firstChild.textContent = `${heroSection.content.primaryCta} `;
       if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
     }
+    if (Array.isArray(data.gallery) && data.gallery.length) {
+      document.querySelectorAll('.gallery-grid .gallery-tile').forEach((tile, index) => {
+        const item = data.gallery[index]; if (!item || !/^https:\/\//.test(item.public_url)) return;
+        tile.style.backgroundImage = `url("${item.public_url.replaceAll('"', '')}")`;
+        tile.setAttribute('role', 'img'); tile.setAttribute('aria-label', item.alt_text || item.caption || 'Hair by Maeva hairstyle');
+      });
+    }
     if (Array.isArray(data.socials) && data.socials.length) {
       const socialNode = document.querySelector('.contact-note p:nth-child(2)');
       socialNode.replaceChildren();
