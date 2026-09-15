@@ -85,7 +85,15 @@ document.querySelector('#booking-form').addEventListener('submit', (e) => {
   document.querySelector('#review-length').textContent = selected.length;
   document.querySelector('#review-date').textContent = selected.details.date;
   document.querySelector('#review-time').textContent = selected.details.time;
-  const servicePrice = Number((selected.length.match(/\$(\d+(?:\.\d+)?)/) || [0, 0])[1]); const optionTotal = (catalogOptions[selected.service] || []).filter((option) => selected.details.options.includes(option.name)).reduce((sum, option) => sum + Number(option.price_delta || 0), 0); const reviewCard = document.querySelector('.review-card');
+  const reviewCard = document.querySelector('.review-card');
+  const customerLine = document.querySelector('#review-customer') || Object.assign(document.createElement('p'), { id: 'review-customer' });
+  customerLine.textContent = `${selected.details.name} · ${selected.details.email} · ${selected.details.phone}`;
+  if (!customerLine.parentElement) reviewCard.append(customerLine);
+  const locationLine = document.querySelector('#review-location') || Object.assign(document.createElement('p'), { id: 'review-location' });
+  locationLine.textContent = selected.details.location ? `Location: ${selected.details.location}` : '';
+  locationLine.classList.toggle('hidden', !selected.details.location);
+  if (!locationLine.parentElement) reviewCard.append(locationLine);
+  const servicePrice = Number((selected.length.match(/\$(\d+(?:\.\d+)?)/) || [0, 0])[1]); const optionTotal = (catalogOptions[selected.service] || []).filter((option) => selected.details.options.includes(option.name)).reduce((sum, option) => sum + Number(option.price_delta || 0), 0);
   document.querySelector('#review-options')?.remove();
   if (selected.details.options.length) { const optionLine = document.createElement('p'); optionLine.id = 'review-options'; optionLine.textContent = `Options: ${selected.details.options.join(', ')}`; reviewCard.insertBefore(optionLine, reviewCard.querySelector('.review-line')); }
   document.querySelector('#review-total')?.remove(); document.querySelector('#review-remaining')?.remove();
@@ -130,6 +138,14 @@ const timeSelect = document.createElement('select');
 timeSelect.name = 'time'; timeSelect.required = true; timeSelect.setAttribute('aria-label', 'Available appointment time');
 timeSelect.innerHTML = '<option value="">Choose a date first</option>';
 timeInput.replaceWith(timeSelect);
+const detailsForm = document.querySelector('#booking-form');
+const phoneField = detailsForm.querySelector('input[name="phone"]');
+if (!detailsForm.querySelector('[name="location"]')) {
+  const locationLabel = document.createElement('label'); locationLabel.textContent = 'LOCATION / ADDRESS (OPTIONAL)';
+  const locationInput = document.createElement('input'); locationInput.name = 'location'; locationInput.placeholder = 'Your preferred location'; locationLabel.append(locationInput); phoneField.closest('label').after(locationLabel);
+  const notesLabel = document.createElement('label'); notesLabel.textContent = 'ADDITIONAL NOTES (OPTIONAL)';
+  const notesInput = document.createElement('textarea'); notesInput.name = 'notes'; notesInput.rows = 3; notesInput.placeholder = 'Anything Maeva should know?'; notesLabel.append(notesInput); locationLabel.after(notesLabel);
+}
 async function loadAvailability() {
   timeSelect.innerHTML = '<option value="">Loading available times…</option>';
   if (!dateInput.value || !selected.service) { timeSelect.innerHTML = '<option value="">Choose a date first</option>'; return; }
