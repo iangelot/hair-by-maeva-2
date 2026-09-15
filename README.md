@@ -13,7 +13,7 @@ Mobile-first booking website for Hair by Maeva, built from the supplied Figma de
 - Supabase: new project `hair-by-maeva-2`, ref `ebljbhjtnazslbdkpmbu`, `eu-west-1`
 - Schema and seed catalog: `supabase/schema.sql`
 - Resend: customer/admin notifications are addressed to `maevausa@outlook.com` and also `hairbymaevasystem@gmail.com` for Gmail routing. Set up Gmail forwarding from the routing inbox to Outlook if desired. A verified sender domain and API key are still required; no secret is committed.
-- Vercel: deploy the repository and add the variables from `.env.example` to Preview and Production.
+- Vercel: deploy the repository and add the variables from `.env.example` to Preview and Production. Public content routes use `SUPABASE_PUBLISHABLE_KEY` with RLS; booking and admin mutations require the server-only service-role key.
 
 ## Admin setup
 
