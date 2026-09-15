@@ -126,9 +126,9 @@ create table if not exists public.bookings (
   token_expires_at timestamptz not null default (now() + interval '90 days'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  confirmed_at timestamptz,
-  unique(appointment_date, appointment_time)
+  confirmed_at timestamptz
 );
+create unique index if not exists bookings_active_slot_idx on public.bookings(appointment_date, appointment_time) where status <> 'cancelled';
 
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
