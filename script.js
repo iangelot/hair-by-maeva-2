@@ -15,6 +15,7 @@ document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('clic
 
 const modal = document.querySelector('#booking-modal');
 const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {} };
+selected.booking = null;
 const catalogLengths = {
   'Senegalese Twist': { Bob: 200, Middle: 230, Waist: 260, Butt: 300 },
   'Boho Knotless': { Bob: 180, Middle: 210, Waist: 240 },
@@ -33,6 +34,33 @@ const syncLengthOptions = () => {
   });
   selected.length = '';
   document.querySelectorAll('.length-grid button').forEach((button) => button.classList.remove('picked'));
+};
+const paymentStep = document.createElement('div');
+paymentStep.className = 'modal-step hidden';
+paymentStep.dataset.step = 'payment';
+paymentStep.innerHTML = '<p class="eyebrow">05 / 06</p><h2>Choose your<br /><em>payment.</em></h2><div class="payment-method-list" id="payment-method-list"><p class="payment-loading">Loading payment methods…</p></div><div class="payment-instructions hidden" id="payment-instructions"><p class="eyebrow" id="payment-method-name">PAYMENT DETAILS</p><p id="payment-method-copy"></p><a class="pill pill-dark" id="payment-open-link" href="#" target="_blank" rel="noreferrer">OPEN PAYMENT APP ↗</a><button class="modal-next" id="payment-paid">I’VE PAID ↗</button></div>';
+document.querySelector('.booking-modal').insertBefore(paymentStep, document.querySelector('.modal-success'));
+const paymentMethods = [];
+const loadPaymentMethods = async () => {
+  const list = paymentStep.querySelector('#payment-method-list');
+  try {
+    const response = await fetch('/api/payment-methods');
+    const methods = await response.json();
+    if (!response.ok || !methods.length) throw new Error('Payment methods are not configured yet.');
+    paymentMethods.splice(0, paymentMethods.length, ...methods);
+    list.innerHTML = methods.map((method) => `<button class="payment-method-option" data-method-id="${method.id}">${method.name}<span>SELECT ↗</span></button>`).join('');
+    list.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
+      const method = paymentMethods.find((item) => item.id === button.dataset.methodId);
+      if (!method) return;
+      paymentStep.querySelector('#payment-method-name').textContent = method.name.toUpperCase();
+      paymentStep.querySelector('#payment-method-copy').textContent = method.instructions || [method.handle, method.email, method.phone].filter(Boolean).join(' · ') || 'Use the payment details provided by Maeva.';
+      const link = paymentStep.querySelector('#payment-open-link');
+      link.href = method.deep_link || method.payment_url || '#';
+      link.classList.toggle('hidden', !(method.deep_link || method.payment_url));
+      paymentStep.querySelector('#payment-instructions').classList.remove('hidden');
+      selected.paymentMethodId = method.id;
+    }));
+  } catch (error) { list.innerHTML = `<p class="payment-error">${error.message}</p>`; }
 };
 const closeModal = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); };
 const showStep = (step) => { document.querySelectorAll('.modal-step').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== step)); document.querySelector('.modal-success').classList.add('hidden'); };
@@ -60,8 +88,23 @@ document.querySelector('#submit-booking').addEventListener('click', async () => 
   try {
     const response = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...selected.details, serviceSlug: selected.service.toLowerCase().replaceAll(' ', '-'), lengthName: selected.length.split(' — ')[0], fullName: selected.details.name }) });
     const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Booking request failed.');
+    selected.booking = result;
+    button.disabled = false; button.textContent = 'PROCEED TO PAYMENT ↗';
+    await loadPaymentMethods(); showStep('payment');
+  } catch (error) { button.disabled = false; button.textContent = 'PROCEED TO PAYMENT ↗'; alert(error.message); }
+});
+
+paymentStep.querySelector('#payment-paid').addEventListener('click', async () => {
+  if (!selected.booking?.accessUrl || !selected.paymentMethodId) return alert('Choose a payment method first.');
+  const button = paymentStep.querySelector('#payment-paid'); button.disabled = true; button.textContent = 'SUBMITTING…';
+  try {
+    const token = new URL(selected.booking.accessUrl, location.origin).searchParams.get('token');
+    const response = await fetch('/api/payment-submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, methodId: selected.paymentMethodId }) });
+    const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Payment submission failed.');
     document.querySelectorAll('.modal-step').forEach((el) => el.classList.add('hidden')); document.querySelector('.modal-success').classList.remove('hidden');
-  } catch (error) { button.disabled = false; button.textContent = 'SUBMIT REQUEST ↗'; alert(error.message); }
+    document.querySelector('.modal-success .eyebrow').textContent = 'PAYMENT SUBMITTED';
+    document.querySelector('.modal-success p:not(.eyebrow)').textContent = 'Thank you. Your payment is awaiting manual verification. Check your email for updates.';
+  } catch (error) { button.disabled = false; button.textContent = 'I’VE PAID ↗'; alert(error.message); }
 });
 
 document.querySelector('#contact-form').addEventListener('submit', async (e) => {
