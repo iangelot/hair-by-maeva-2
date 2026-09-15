@@ -40,10 +40,10 @@ module.exports = async function handler(req, res) {
     const [existing] = await supabase(`customers?email=eq.${encodeURIComponent(email)}&select=id`);
     const customer = existing || (await supabase('customers', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ full_name: fullName, email, phone, location: clean(input.location, 180) }) }))[0];
     if (!existing) await supabase(`customers?id=eq.${customer.id}`, { method: 'PATCH', body: JSON.stringify({ updated_at: new Date().toISOString() }) });
-    const { token, hash } = tokenPair();
+    const { token, hash, ciphertext } = tokenPair();
     const total = Number(length.price);
     const reservationFee = Number(input.reservationFee || 20);
-    const booking = (await supabase('bookings', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ customer_id: customer.id, service_id: service.id, service_name_snapshot: service.name, length_name_snapshot: length.name, appointment_date: date, appointment_time: time, duration_minutes: service.duration_minutes, total_price: total, reservation_fee: reservationFee, remaining_balance: Math.max(0, total - reservationFee), access_token_hash: hash, customer_notes: clean(input.notes, 1000) }) }))[0];
+    const booking = (await supabase('bookings', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ customer_id: customer.id, service_id: service.id, service_name_snapshot: service.name, length_name_snapshot: length.name, appointment_date: date, appointment_time: time, duration_minutes: service.duration_minutes, total_price: total, reservation_fee: reservationFee, remaining_balance: Math.max(0, total - reservationFee), access_token_hash: hash, access_token_ciphertext: ciphertext, customer_notes: clean(input.notes, 1000) }) }))[0];
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
     const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
     const html = `<p>Hi ${fullName},</p><p>Your Hair by Maeva booking request <strong>${booking.booking_number}</strong> has been received.</p><p>${service.name} · ${length.name}<br>${date} at ${time}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;

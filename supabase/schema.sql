@@ -123,6 +123,7 @@ create table if not exists public.bookings (
   status public.booking_status not null default 'pending_payment',
   customer_notes text,
   access_token_hash text not null unique,
+  access_token_ciphertext text,
   token_expires_at timestamptz not null default (now() + interval '90 days'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

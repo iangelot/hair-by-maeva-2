@@ -47,10 +47,10 @@
       document.querySelectorAll('.policy-editor form').forEach((form) => form.addEventListener('submit', savePolicy));
     }
     async function updatePayment(id, action) {
-      const confirmed = action === 'confirm'; const paymentStatus = confirmed ? 'payment_verified' : 'payment_not_received'; const bookingStatus = confirmed ? 'confirmed' : 'pending_payment';
       setStatus('Saving payment status…');
-      const { error } = await client.from('bookings').update({ payment_status: paymentStatus, status: bookingStatus, confirmed_at: confirmed ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id);
-      if (error) setStatus(error.message, true); else { setStatus('Payment status updated.'); loadDashboard(); }
+      const { data: sessionData } = await client.auth.getSession(); const token = sessionData.session?.access_token;
+      const response = await fetch('/api/admin-payment', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` }, body: JSON.stringify({ bookingId: id, action }) });
+      const result = await response.json(); if (!response.ok) setStatus(result.error || 'Unable to update payment.', true); else { setStatus('Payment status updated.'); loadDashboard(); }
     }
     async function savePolicy(event) { event.preventDefault(); const form = event.currentTarget; const values = Object.fromEntries(new FormData(form)); const { error } = await client.from('policies').update({ title: values.title, body: values.body }).eq('id', form.dataset.policyId); setStatus(error ? error.message : 'Policy saved.', Boolean(error)); }
     document.querySelector('#login-form').addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; const result = await client.auth.signInWithPassword({ email: form.email.value, password: form.password.value }); if (result.error) document.querySelector('#login-status').textContent = result.error.message; else { loginPanel.classList.add('hidden'); dashboard.classList.remove('hidden'); loadDashboard(); } });
