@@ -284,3 +284,8 @@ insert into public.policies (policy_key, title, body, display_order) values
   ('cancellation','CANCELLATION & RESCHEDULING','Please notify Maeva at least 24–48 hours before your appointment. No-shows and late cancellations may forfeit the deposit.',3),
   ('late-arrival','LATE ARRIVAL','There is a 15-minute grace period. After 15 minutes, a $25 late fee may apply.',4)
 on conflict (policy_key) do update set body=excluded.body;
+insert into public.website_sections (page_slug, section_key, content, display_order) values
+  ('home','hero','{"title":"PROTECTIVE STYLES, MADE BEAUTIFULLY.","description":"Chicago based braiding specialist creating detailed, long-lasting styles tailored to you.","primaryCta":"BOOK AN APPOINTMENT","secondaryCta":"VIEW SERVICES ↓"}'::jsonb,1),
+  ('home','services','{"eyebrow":"SERVICES & PRICING","title":"Quality styles, best pricing."}'::jsonb,2),
+  ('home','booking','{"eyebrow":"READY WHEN YOU ARE","title":"Your next style starts here."}'::jsonb,3)
+on conflict (page_slug,section_key) do nothing;

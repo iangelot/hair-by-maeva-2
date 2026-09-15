@@ -157,6 +157,12 @@ async function loadPublicContent() {
         if (option) { option.dataset.value = service.name; option.firstChild.textContent = `${service.name} `; option.querySelector('span').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'VIEW DETAILS'; }
       });
     }
+    const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
+    if (heroSection?.content) {
+      if (heroSection.content.description) document.querySelector('.hero-copy>p').textContent = heroSection.content.description;
+      if (heroSection.content.primaryCta) document.querySelector('.hero-actions .pill').firstChild.textContent = `${heroSection.content.primaryCta} `;
+      if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
+    }
     if (Array.isArray(data.socials) && data.socials.length) {
       const socialNode = document.querySelector('.contact-note p:nth-child(2)');
       socialNode.replaceChildren();
