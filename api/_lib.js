@@ -23,6 +23,18 @@ async function supabase(path, options = {}) {
   return data;
 }
 
+async function supabasePublic(path, options = {}) {
+  const key = env('SUPABASE_PUBLISHABLE_KEY');
+  const response = await fetch(`${env('SUPABASE_URL')}/rest/v1/${path}`, {
+    ...options,
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...(options.headers || {}) },
+  });
+  const text = await response.text(); let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!response.ok) throw new Error(data?.message || data?.hint || `Supabase request failed (${response.status})`);
+  return data;
+}
+
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
@@ -87,4 +99,4 @@ async function requireAdmin(req) {
   return user;
 }
 
-module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, tokenPair, trySendEmail };
+module.exports = { adminRecipients, body, clean, decryptToken, env, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail };
