@@ -16,7 +16,10 @@ module.exports = async function handler(req, res) {
     const methods = await supabase(`payment_methods?id=eq.${encodeURIComponent(methodId)}&is_active=eq.true&select=id,name`);
     const method = methods[0];
     if (!method) return json(res, 400, { error: 'That payment method is not available.' });
-    await supabase(`payments?booking_id=eq.${encodeURIComponent(booking.id)}&status=eq.unpaid`, { method: 'PATCH', body: JSON.stringify({ method_id: method.id, status: 'payment_submitted', submitted_at: new Date().toISOString(), note: clean(input.note, 500) }) });
+    const paymentRows = await supabase(`payments?booking_id=eq.${encodeURIComponent(booking.id)}&select=id&order=created_at.desc&limit=1`);
+    const paymentPayload = { booking_id: booking.id, amount: booking.reservation_fee, method_id: method.id, status: 'payment_submitted', submitted_at: new Date().toISOString(), note: clean(input.note, 500) };
+    if (paymentRows[0]) await supabase(`payments?id=eq.${encodeURIComponent(paymentRows[0].id)}`, { method: 'PATCH', body: JSON.stringify(paymentPayload) });
+    else await supabase('payments', { method: 'POST', body: JSON.stringify(paymentPayload) });
     await supabase(`bookings?id=eq.${encodeURIComponent(booking.id)}`, { method: 'PATCH', body: JSON.stringify({ payment_method_id: method.id, payment_status: 'payment_submitted', status: 'payment_submitted', updated_at: new Date().toISOString() }) });
     const customer = (await supabase(`customers?id=eq.${encodeURIComponent(booking.customer_id)}&select=full_name,email`))[0];
     if (customer?.email) {
