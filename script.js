@@ -286,8 +286,8 @@ async function loadPublicContent() {
     });
     (data.sectionVisibility || []).forEach((section) => { const node = homeSectionNodes[section.section_key]; if (node) node.hidden = section.is_visible === false; });
     const mainContent = document.querySelector('main');
-    const orderedHomeSections = (data.sectionVisibility || []).filter((section) => section.is_visible !== false && homeSectionNodes[section.section_key]).sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
-    orderedHomeSections.forEach((section) => mainContent.append(homeSectionNodes[section.section_key]));
+    // Keep the Figma-designed core sequence in the DOM. CMS visibility still
+    // works, while stale display_order rows cannot move the hero below the page.
     if (heroSection?.content) {
       const heroTitle = heroSection.content.title || heroSection.content.headline;
       const heroSubtitle = heroSection.content.subtitle || heroSection.content.tagline;
@@ -298,7 +298,8 @@ async function loadPublicContent() {
       if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
       if (heroSection.content.primaryCtaLink) document.querySelector('.hero-actions .pill').href = heroSection.content.primaryCtaLink;
       if (heroSection.content.secondaryCtaLink) document.querySelector('.hero-actions .text-link').href = heroSection.content.secondaryCtaLink;
-      if (heroSection.content.heroImage || heroSection.content.heroImageUrl) { const heroImage = heroSection.content.heroImage || heroSection.content.heroImageUrl; document.querySelector('.hero-image').style.backgroundImage = `url("${String(heroImage).replaceAll('"', '')}")`; }
+      // The hero image is a committed design asset. Do not let an old CMS URL
+      // replace it with an unavailable external image.
     }
     const servicesSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'services');
     if (servicesSection?.content) { const heading = document.querySelector('#services .section-heading'); if (servicesSection.content.eyebrow) heading.querySelector('.eyebrow').textContent = servicesSection.content.eyebrow; if (servicesSection.content.title) heading.querySelector('h2').textContent = servicesSection.content.title; }
