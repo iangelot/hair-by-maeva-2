@@ -33,4 +33,5 @@ html,body{overflow-x:hidden}
 .service-image.image-two,.gallery-tile.image-two{background-image:url('./assets/web/gallery-2.jpg')}
 .service-image.image-three,.gallery-tile.image-three{background-image:url('./assets/web/gallery-3.jpg')}
 .gallery-tile.image-four{background-image:url('./assets/web/gallery-4.jpg')}
+.hero-image{background-image:url('./assets/hero.png')}
 .provider-line{margin:0 0 24px;color:#5b4038;font-size:16px;line-height:1.4}.provider-line strong{font-family:var(--display);font-weight:400;font-size:22px}
