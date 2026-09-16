@@ -286,7 +286,13 @@ async function loadPublicContent() {
     });
     (data.sectionVisibility || []).forEach((section) => { const node = homeSectionNodes[section.section_key]; if (node) node.hidden = section.is_visible === false; });
     const mainContent = document.querySelector('main');
-    const orderedHomeSections = (data.sectionVisibility || []).filter((section) => section.is_visible !== false && homeSectionNodes[section.section_key]).sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+    // Preserve the designed mobile-first landing-page sequence. Older CMS rows can
+    // contain stale display_order values, which otherwise move the hero below the
+    // gallery/footer after a content refresh.
+    const homeSectionOrder = ['hero', 'services', 'gallery', 'policies', 'contact', 'booking'];
+    const visibleSectionKeys = new Set((data.sectionVisibility || []).filter((section) => section.is_visible !== false).map((section) => section.section_key));
+    const orderedHomeSections = homeSectionOrder.filter((key) => homeSectionNodes[key] && (visibleSectionKeys.size === 0 || visibleSectionKeys.has(key))).map((section_key) => ({section_key}));
+    (data.sectionVisibility || []).filter((section) => section.is_visible !== false && homeSectionNodes[section.section_key] && !homeSectionOrder.includes(section.section_key)).forEach((section) => orderedHomeSections.push(section));
     orderedHomeSections.forEach((section) => mainContent.append(homeSectionNodes[section.section_key]));
     if (heroSection?.content) {
       const heroTitle = heroSection.content.title || heroSection.content.headline;
