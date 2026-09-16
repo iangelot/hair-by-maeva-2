@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/booking", "destination": "/booking.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

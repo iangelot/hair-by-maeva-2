@@ -42,12 +42,16 @@
     const loginPanel = document.querySelector('#login-panel'); const dashboard = document.querySelector('#dashboard'); const status = document.querySelector('#dashboard-status');
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     const setStatus = (text, error = false) => { status.textContent = text; status.style.color = error ? '#a23939' : ''; };
+    const queryWithTimeout = (promise, label, timeoutMs = 12000) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve({ data: null, error: new Error(`${label} timed out. Check the Supabase project connection and admin access.`) }), timeoutMs))]);
+    const markDashboardUnavailable = (message) => { setStatus(message, true); document.querySelectorAll('#dashboard .admin-list, #dashboard tbody').forEach((node) => { if (/Loading/.test(node.textContent)) node.innerHTML = `<p class="admin-load-error">${escapeHtml(message)}</p>`; }); };
     async function loadDashboard() {
+      if (window.__dashboardLoading) return; window.__dashboardLoading = true;
+      try {
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-      const { data: bookings, error } = await client.from('bookings').select('id,booking_number,service_name_snapshot,length_name_snapshot,appointment_date,appointment_time,total_price,reservation_fee,admin_notes,payment_status,status,customers(full_name,email)').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true }).limit(100);
+      const { data: bookings, error } = await queryWithTimeout(client.from('bookings').select('id,booking_number,service_name_snapshot,length_name_snapshot,appointment_date,appointment_time,total_price,reservation_fee,admin_notes,payment_status,status,customers(full_name,email)').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true }).limit(100), 'Bookings');
       if (error) { setStatus(error.message, true); return; }
       const rows = bookings || [];
-      const { data: customers, error: customerError } = await client.from('customers').select('id,full_name,email,phone,location,created_at').order('created_at', { ascending: false }).limit(100);
+      const { data: customers, error: customerError } = await queryWithTimeout(client.from('customers').select('id,full_name,email,phone,location,created_at').order('created_at', { ascending: false }).limit(100), 'Customers');
       if (customerError) { setStatus(customerError.message, true); return; }
       if (!document.querySelector('#customer-list')) { const section = document.createElement('section'); section.className = 'admin-card admin-section'; section.innerHTML = '<div class="admin-section-head"><h2>Customers</h2></div><div id="customer-list" class="admin-list"></div>'; document.querySelector('#dashboard').append(section); }
       document.querySelector('#customer-list').innerHTML = (customers || []).length ? `<div class="admin-table-wrap"><table><thead><tr><th>Customer</th><th>Contact</th><th>Location</th><th>Joined</th></tr></thead><tbody>${customers.map((customer) => `<tr><td><strong>${escapeHtml(customer.full_name)}</strong></td><td>${escapeHtml(customer.email)}<small>${escapeHtml(customer.phone || '')}</small></td><td>${escapeHtml(customer.location || '—')}</td><td>${escapeHtml(String(customer.created_at || '').slice(0, 10))}</td></tr>`).join('')}</tbody></table></div>` : 'No customers yet.';
@@ -112,6 +116,9 @@
       const { data: socials } = await client.from('social_links').select('id,label,url,is_active,display_order').order('display_order');
       document.querySelector('#social-list').innerHTML = (socials || []).map((item) => `<form class="admin-list-item social-editor" data-social-id="${item.id}"><label>LABEL<input required name="label" value="${escapeHtml(item.label)}"></label><label>URL<input required type="url" name="url" value="${escapeHtml(item.url)}"></label><label>DISPLAY ORDER<input required type="number" min="0" name="display_order" value="${Number(item.display_order || 0)}"></label><label class="check-label"><input type="checkbox" name="is_active" ${item.is_active ? 'checked' : ''}> VISIBLE</label><button class="admin-action" type="submit">SAVE</button></form>`).join('') || '<p>No social links configured.</p>';
       document.querySelectorAll('.social-editor').forEach((form) => form.addEventListener('submit', saveSocial));
+      setStatus('Dashboard ready.');
+      } catch (loadError) { markDashboardUnavailable(loadError.message || 'Unable to load the dashboard.'); }
+      finally { window.__dashboardLoading = false; }
     }
     async function updatePayment(id, action) {
       setStatus('Saving payment status…');
