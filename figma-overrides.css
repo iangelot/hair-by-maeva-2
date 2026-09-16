@@ -27,4 +27,5 @@
 html,body{overflow-x:hidden}
 .selected-service-details{border-bottom:1px solid rgba(74,43,35,.2);margin:0 0 18px;padding:0 0 12px;color:#5b4038;font-size:14px;line-height:1.35}.selected-service-details p{margin:6px 0}.selected-service-details strong{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.04em}
 .cms-section-image{min-height:220px;margin:20px 0;background-size:cover;background-position:center;border-radius:2px}
+.section-order-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .provider-line{margin:0 0 24px;color:#5b4038;font-size:16px;line-height:1.4}.provider-line strong{font-family:var(--display);font-weight:400;font-size:22px}
