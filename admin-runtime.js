@@ -723,7 +723,7 @@
             <div class="cms-grid-2" style="align-items:center;">
               <div class="form-group">
                 <label>REPLACE IMAGE FILE</label>
-                <input type="file" name="image_file" accept="image/jpeg,image/png,image/webp,image/avif">
+                <input type="file" name="image_file" accept="image/*">
               </div>
               <div>
                 ${imgUrl ? `<img src="${imgUrl}" alt="${escapeHtml(s.name)}" style="width:70px; height:70px; object-fit:cover; border-radius:4px; border:1px solid var(--admin-border);">` : '<span style="font-size:11px; color:#765e58;">No image attached</span>'}

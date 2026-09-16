@@ -194,7 +194,7 @@
             <div class="form-group"><label>DESCRIPTION</label><textarea name="description" rows="2" placeholder="Detailed hairstyle summary"></textarea></div>
             <div class="cms-grid-2">
               <div class="form-group"><label>NOTES</label><input name="notes" placeholder="e.g. Hair is not included"></div>
-              <div class="form-group"><label>IMAGE FILE</label><input type="file" name="image_file" accept="image/jpeg,image/png,image/webp,image/avif"></div>
+              <div class="form-group"><label>IMAGE FILE</label><input type="file" name="image_file" accept="image/*"></div>
             </div>
             <div class="cms-grid-2">
               <div class="form-group"><label>DISPLAY ORDER</label><input required type="number" min="0" step="1" name="display_order" value="99"></div>
@@ -274,7 +274,7 @@
             </div>
             <div class="form-group">
               <label>HERO BACKGROUND IMAGE</label>
-              <input type="file" id="hero-img-file" accept="image/jpeg,image/png,image/webp,image/avif">
+              <input type="file" id="hero-img-file" accept="image/*">
               <input type="hidden" id="hero-img-url">
               <div id="hero-img-preview" class="image-preview-box">Current Hero Image</div>
             </div>
@@ -352,7 +352,7 @@
           <form id="new-gallery-form" style="padding: 16px; border: 1px solid var(--admin-border); border-radius: 6px; margin-bottom: 24px; background: #faf8f5;">
             <p class="eyebrow" style="margin-top: 0;">UPLOAD NEW PHOTO</p>
             <div class="cms-grid-3">
-              <div class="form-group"><label>SELECT IMAGE FILE</label><input required type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif"></div>
+              <div class="form-group"><label>SELECT IMAGE FILE</label><input required type="file" name="image" accept="image/*"></div>
               <div class="form-group"><label>CAPTION / TITLE</label><input name="caption" placeholder="e.g. Knotless Braids"></div>
               <div class="form-group"><label>CATEGORY</label><input name="category" placeholder="Braids / Twists / Locs"></div>
             </div>
