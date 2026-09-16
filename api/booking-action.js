@@ -47,5 +47,5 @@ module.exports = async function handler(req, res) {
       if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer.email, subject: `Booking rescheduled — ${booking.booking_number}`, html });
     }
     return json(res, 200, { ok: true, status: 'rescheduled', date, time });
-  } catch (error) { console.error(error); return json(res, 500, { error: 'We could not update that booking.' }); }
+  } catch (error) { console.error(error); if (/overlap|already booked|existing booking/i.test(error.message || '')) return json(res, 409, { error: 'That time was just taken. Please choose another appointment slot.' }); return json(res, 500, { error: 'We could not update that booking.' }); }
 };

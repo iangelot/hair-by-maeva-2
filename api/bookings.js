@@ -64,6 +64,7 @@ module.exports = async function handler(req, res) {
     return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl: manageUrl, totalPrice: total, reservationFee, remainingBalance: Math.max(0, total - reservationFee), emailSent: customerEmailSent, adminEmailSent });
   } catch (error) {
     console.error(error);
+    if (/overlap|already booked|existing booking/i.test(error.message || '')) return json(res, 409, { error: 'That time was just taken. Please choose another appointment slot.' });
     return json(res, 500, { error: 'We could not save that booking. Please try again.' });
   }
 };
