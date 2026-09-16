@@ -92,15 +92,33 @@ function brandedEmail({ eyebrow = 'HAIR BY MAEVA', title, greeting = '', content
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@font-face{font-family:'Blowreph';src:url('${fontUrl}') format('truetype');font-weight:400;font-style:normal}.email-wrap{background:#f5efe6;padding:28px 12px}.email-card{max-width:620px;margin:0 auto;background:#fffaf4;color:#4d2c2e}.email-brand{background:#4d2c2e;color:#f5efe6;padding:28px;text-align:center}.email-eyebrow{font:12px/1.3 'Blowreph',Georgia,serif;letter-spacing:3px;margin:0}.email-title{font:32px/1.15 'Blowreph',Georgia,serif;margin:16px 0 0}.email-body{padding:30px 28px;font:16px/1.65 Arial,sans-serif}.email-body h2{font:25px/1.2 'Blowreph',Georgia,serif;margin:0 0 16px}.email-footer{padding:20px;text-align:center;color:#765e58;font:13px/1.5 Arial,sans-serif}.email-footer strong{color:#4d2c2e;font-family:'Blowreph',Georgia,serif}@media(max-width:620px){.email-wrap{padding:0}.email-body{padding:24px 20px}.email-brand{padding:24px 20px}}</style></head><body style="margin:0;padding:0;background:#f5efe6"><div class="email-wrap"><div class="email-card"><div class="email-brand"><p class="email-eyebrow">${eyebrow}</p><h1 class="email-title">${title}</h1></div><div class="email-body">${greeting ? `<p style="margin-top:0;font-size:18px">${greeting}</p>` : ''}${content}</div><div class="email-footer">${footer}</div></div></div></body></html>`;
 }
 
-async function sendEmail({ to, subject, html, replyTo }) {
+function htmlToPlainText(html = '') {
+  return String(html)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+async function sendEmail({ to, subject, html, text, replyTo }) {
+  const plainText = text || htmlToPlainText(html);
   if (process.env.GMAIL_SMTP_EMAIL && process.env.GMAIL_SMTP_APP_PASSWORD) {
     const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: env('GMAIL_SMTP_EMAIL'), pass: env('GMAIL_SMTP_APP_PASSWORD') } });
-    return transporter.sendMail({ from: `Hair by Maeva <${env('GMAIL_SMTP_EMAIL')}>`, to, subject, html, ...(replyTo ? { replyTo } : {}) });
+    return transporter.sendMail({ from: `Hair by Maeva <${env('GMAIL_SMTP_EMAIL')}>`, to, subject, html, text: plainText, ...(replyTo ? { replyTo } : {}) });
   }
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env('RESEND_FROM_EMAIL'), to, subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
+    body: JSON.stringify({ from: env('RESEND_FROM_EMAIL'), to, subject, html, text: plainText, ...(replyTo ? { reply_to: replyTo } : {}) }),
   });
   if (!response.ok) throw new Error(`Resend request failed (${response.status})`);
   return response.json();
