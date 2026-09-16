@@ -531,7 +531,8 @@ async function loadPublicContent() {
       const footer = document.querySelector('footer');
       if (footer) {
         if (footerSection.content.brandName) footer.querySelector('span:first-child').textContent = footerSection.content.brandName;
-        if (footerSection.content.copyrightText) footer.querySelector('span:last-child').textContent = footerSection.content.copyrightText;
+        const copyText = footerSection.content.copyright || footerSection.content.copyrightText;
+        if (copyText) footer.querySelector('span:last-child').textContent = copyText;
       }
     }
 
