@@ -106,7 +106,7 @@ async function trySendTemplatedEmail({ templateKey, variables = {}, ...fallback 
       const renderedHtml = replace(templates[0].html_body);
       // Keep the secure access link and booking identifier in transactional mail even
       // when an older CMS template does not yet contain those variables.
-      const requiredMarkers = ['booking_number', 'manage_url'].filter((key) => variables[key] && !renderedHtml.includes(String(variables[key])));
+      const requiredMarkers = ['booking_number', 'manage_url', 'message', 'topic'].filter((key) => variables[key] && !renderedHtml.includes(String(variables[key])));
       message = { ...fallback, subject: replace(templates[0].subject), html: requiredMarkers.length && fallback.html ? `${renderedHtml}<hr>${fallback.html}` : renderedHtml };
     }
   } catch (error) { console.error('Email template lookup failed:', error.message); }
