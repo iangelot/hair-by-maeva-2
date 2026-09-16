@@ -214,6 +214,7 @@ const dateInput = document.querySelector('input[name="date"]');
 dateInput.min = new Date().toISOString().slice(0, 10);
 const timeSelect = document.querySelector('select[name="time"]');
 timeSelect.setAttribute('aria-label', 'Available appointment time');
+const timeOptions = document.querySelector('#time-options');
 const dateHelper = document.querySelector('.modal-step[data-step="date"] .step-helper');
 const dateNext = document.querySelector('#date-next');
 const detailsForm = document.querySelector('#booking-form');
@@ -226,6 +227,7 @@ if (!detailsForm.querySelector('[name="location"]')) {
 }
 async function loadAvailability() {
   timeSelect.innerHTML = '<option value="">Loading available times…</option>';
+  timeOptions.replaceChildren();
   dateNext.disabled = true;
   if (dateHelper) { dateHelper.textContent = 'Checking available appointment times…'; dateHelper.classList.remove('availability-error'); }
   if (!dateInput.value || !selected.service) { timeSelect.innerHTML = '<option value="">Choose a date first</option>'; return false; }
@@ -234,6 +236,17 @@ async function loadAvailability() {
     const data = await response.json();
     if (!response.ok || !data.slots?.length) throw new Error('No appointment times are available on this date.');
     timeSelect.innerHTML = '<option value="">Choose an available time</option>' + data.slots.map((slot) => `<option value="${slot}">${slot}</option>`).join('');
+    data.slots.forEach((slot) => {
+      const option = document.createElement('button');
+      option.type = 'button'; option.className = 'time-option'; option.textContent = slot;
+      option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
+      option.addEventListener('click', () => {
+        timeSelect.value = slot;
+        timeOptions.querySelectorAll('.time-option').forEach((item) => { item.classList.remove('is-selected'); item.setAttribute('aria-selected', 'false'); });
+        option.classList.add('is-selected'); option.setAttribute('aria-selected', 'true');
+      });
+      timeOptions.append(option);
+    });
     if (dateHelper) dateHelper.textContent = 'Times found — choose one to continue.';
     dateNext.disabled = false;
     return true;
