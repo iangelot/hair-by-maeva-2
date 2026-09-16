@@ -60,7 +60,7 @@ const syncLengthOptions = () => {
 const paymentStep = document.createElement('div');
 paymentStep.className = 'modal-step hidden';
 paymentStep.dataset.step = 'payment';
-paymentStep.innerHTML = '<p class="eyebrow">07 / 07</p><h2>Choose your<br /><em>payment.</em></h2><div class="payment-method-list" id="payment-method-list"><p class="payment-loading">Loading payment methods…</p></div><div class="payment-instructions hidden" id="payment-instructions"><p class="eyebrow" id="payment-method-name">PAYMENT DETAILS</p><p id="payment-method-copy"></p><a class="pill pill-dark" id="payment-open-link" href="#" target="_blank" rel="noreferrer">OPEN PAYMENT APP ↗</a><button class="modal-next" id="payment-paid">I’VE PAID ↗</button></div>';
+paymentStep.innerHTML = '<p class="eyebrow">07 / 07</p><h2>Choose your<br /><em>payment.</em></h2><p class="provider-line"><strong>Hair by Maeva</strong><br>Chicago, IL</p><div class="payment-method-list" id="payment-method-list"><p class="payment-loading">Loading payment methods…</p></div><div class="payment-instructions hidden" id="payment-instructions"><p class="eyebrow" id="payment-method-name">PAYMENT DETAILS</p><p id="payment-method-copy"></p><a class="pill pill-dark" id="payment-open-link" href="#" target="_blank" rel="noreferrer">OPEN PAYMENT APP ↗</a><button class="modal-next" id="payment-paid">I’VE PAID ↗</button></div>';
 const paymentBack = document.createElement('button'); paymentBack.type = 'button'; paymentBack.className = 'modal-back'; paymentBack.textContent = '← BACK'; paymentBack.dataset.back = 'review'; paymentStep.prepend(paymentBack);
 document.querySelector('.booking-modal').insertBefore(paymentStep, document.querySelector('.modal-success'));
 const paymentMethods = [];
