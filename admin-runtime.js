@@ -108,10 +108,13 @@
         return {
           getPublicUrl(path) {
             if (!path) return { data: { publicUrl: '' } };
-            if (/^https?:\/\//i.test(path) || path.startsWith('./') || path.startsWith('/')) {
+            if (/^https?:\/\//i.test(path)) {
               return { data: { publicUrl: path } };
             }
-            return { data: { publicUrl: `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}` } };
+            if (/^(\.\/|\/)?assets\//i.test(path)) {
+              return { data: { publicUrl: `/${path.replace(/^(\.\/|\/)+/, '')}` } };
+            }
+            return { data: { publicUrl: `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path.replace(/^\/+/, '')}` } };
           },
           async upload(path, file, options = {}) {
             const token = localStorage.getItem(TOKEN_KEY);
