@@ -117,7 +117,7 @@ async function trySendTemplatedEmail({ templateKey, variables = {}, ...fallback 
 }
 
 function adminRecipients() {
-  return [env('ADMIN_EMAIL'), ...(process.env.ADMIN_ROUTING_EMAIL ? [process.env.ADMIN_ROUTING_EMAIL] : [])];
+  return [...new Set([env('ADMIN_EMAIL'), ...(process.env.ADMIN_ROUTING_EMAIL ? [process.env.ADMIN_ROUTING_EMAIL] : [])].filter(Boolean))];
 }
 
 async function requireAdmin(req) {
