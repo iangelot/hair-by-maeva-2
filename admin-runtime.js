@@ -39,3 +39,5 @@
   };
   window.supabase = { createClient: () => client };
 })();
+
+
