@@ -107,7 +107,10 @@ async function trySendTemplatedEmail({ templateKey, variables = {}, ...fallback 
       // Keep the secure access link and booking identifier in transactional mail even
       // when an older CMS template does not yet contain those variables.
       const requiredMarkers = ['booking_number', 'manage_url', 'message', 'topic'].filter((key) => variables[key] && !renderedHtml.includes(String(variables[key])));
-      message = { ...fallback, subject: replace(templates[0].subject), html: requiredMarkers.length && fallback.html ? `${renderedHtml}<hr>${fallback.html}` : renderedHtml };
+      // Seed templates may contain only placeholder copy. When they omit the
+      // booking-specific markers, use the complete server-generated fallback
+      // so customers always receive the actionable details and secure link.
+      message = { ...fallback, subject: replace(templates[0].subject), html: requiredMarkers.length && fallback.html ? fallback.html : renderedHtml };
     }
   } catch (error) { console.error('Email template lookup failed:', error.message); }
   return trySendEmail(message);
