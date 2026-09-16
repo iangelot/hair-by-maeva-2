@@ -265,10 +265,14 @@ async function loadPublicContent() {
       filterRow.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => { filterRow.querySelectorAll('.filter').forEach((item) => item.classList.remove('active')); button.classList.add('active'); document.querySelectorAll('.service-card').forEach((card) => { card.style.display = button.dataset.filter === 'all' || card.dataset.category === button.dataset.filter ? '' : 'none'; }); }));
     }
     const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
+    const homeSectionNodes = { hero: document.querySelector('.hero'), services: document.querySelector('#services'), gallery: document.querySelector('#gallery'), policies: document.querySelector('#policies'), contact: document.querySelector('#contact'), booking: document.querySelector('#booking') };
+    (data.sectionVisibility || []).forEach((section) => { const node = homeSectionNodes[section.section_key]; if (node) node.hidden = section.is_visible === false; });
     if (heroSection?.content) {
       if (heroSection.content.description) document.querySelector('.hero-copy>p').textContent = heroSection.content.description;
       if (heroSection.content.primaryCta) document.querySelector('.hero-actions .pill').firstChild.textContent = `${heroSection.content.primaryCta} `;
       if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
+      if (heroSection.content.primaryCtaLink) document.querySelector('.hero-actions .pill').href = heroSection.content.primaryCtaLink;
+      if (heroSection.content.secondaryCtaLink) document.querySelector('.hero-actions .text-link').href = heroSection.content.secondaryCtaLink;
       if (heroSection.content.heroImage || heroSection.content.heroImageUrl) { const heroImage = heroSection.content.heroImage || heroSection.content.heroImageUrl; document.querySelector('.hero-image').style.backgroundImage = `url("${String(heroImage).replaceAll('"', '')}")`; }
     }
     const servicesSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'services');
