@@ -43,10 +43,12 @@ function json(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
-async function body(req) {
+async function body(req, maxLimit = 20_000_000) {
   let raw = '';
-  for await (const chunk of req) raw += chunk;
-  if (raw.length > 100_000) throw new Error('Request body is too large');
+  for await (const chunk of req) {
+    raw += chunk;
+    if (raw.length > maxLimit) throw new Error('Request body is too large');
+  }
   return raw ? JSON.parse(raw) : {};
 }
 

@@ -44,6 +44,23 @@ module.exports = async function handler(req, res) {
       return json(res, 200, { path: uploadPath, publicUrl });
     }
 
+    if (action === 'delete_image') {
+      const paths = Array.isArray(input.paths) ? input.paths : [String(input.path || '')].filter(Boolean);
+      if (paths.length) {
+        const storageUrl = `${env('SUPABASE_URL')}/storage/v1/object/hair-media`;
+        await fetch(storageUrl, {
+          method: 'DELETE',
+          headers: {
+            apikey: env('SUPABASE_SERVICE_ROLE_KEY'),
+            Authorization: `Bearer ${env('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ prefixes: paths })
+        }).catch(err => console.warn('Storage delete warning:', err));
+      }
+      return json(res, 200, { ok: true });
+    }
+
     const bookingId = clean(input.bookingId, 80);
     const validActions = ['cancel', 'reschedule', 'delete', 'complete', 'resend_confirmation', 'update_status'];
     if (!bookingId || !validActions.includes(action)) return json(res, 400, { error: 'Invalid booking action.' });

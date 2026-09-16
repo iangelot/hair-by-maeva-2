@@ -80,7 +80,7 @@
   }
 
   async function compressImageIfNeeded(file, maxDimension = 1600, quality = 0.85) {
-    if (!file || !file.type || !file.type.startsWith('image/') || file.size < 300 * 1024) {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
       return file;
     }
     return new Promise((resolve) => {
@@ -197,37 +197,30 @@
               if (res.ok && result.path) {
                 return { data: { path: result.path, publicUrl: result.publicUrl }, error: null };
               }
-              throw new Error(result.error || 'Upload endpoint returned an error.');
+              return { data: null, error: new Error(result.error || 'Image upload failed.') };
             } catch (err) {
-              console.warn('Backend upload proxy failed, attempting direct Supabase upload:', err.message);
-              const token = localStorage.getItem(TOKEN_KEY);
-              const directRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
-                method: 'POST',
-                headers: {
-                  apikey: SUPABASE_KEY,
-                  Authorization: `Bearer ${token || SUPABASE_KEY}`,
-                  'Content-Type': options.contentType || file.type || 'application/octet-stream',
-                  'x-upsert': String(Boolean(options.upsert))
-                },
-                body: file
-              });
-              const directData = await directRes.json().catch(() => ({}));
-              return directRes.ok ? { data: { path }, error: null } : { data: null, error: new Error(directData.message || directData.error || err.message || 'Image upload failed.') };
+              console.error('Upload failure:', err);
+              return { data: null, error: new Error(err.message || 'Image upload failed.') };
             }
           },
           async remove(paths) {
-            const token = localStorage.getItem(TOKEN_KEY);
-            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
-              method: 'DELETE',
-              headers: {
-                apikey: SUPABASE_KEY,
-                Authorization: `Bearer ${token || SUPABASE_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ prefixes: paths })
-            });
-            const data = await res.json().catch(() => ({}));
-            return res.ok ? { data: paths, error: null } : { data: null, error: new Error(data.message || data.error || 'Image removal failed.') };
+            try {
+              const res = await fetch('/api/admin-booking-action', {
+                method: 'POST',
+                headers: {
+                  Authorization: getAuthHeaders().Authorization,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  action: 'delete_image',
+                  paths: Array.isArray(paths) ? paths : [paths]
+                })
+              });
+              const data = await res.json().catch(() => ({}));
+              return res.ok ? { data: paths, error: null } : { data: null, error: new Error(data.error || 'Image removal failed.') };
+            } catch (err) {
+              return { data: null, error: new Error(err.message || 'Image removal failed.') };
+            }
           }
         };
       }
