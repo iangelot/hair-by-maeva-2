@@ -228,7 +228,7 @@ alter table public.social_links enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.email_templates enable row level security;
 
-create or replace function public.is_admin() returns boolean language sql stable security invoker set search_path = public as $$
+create or replace function public.is_admin() returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.admin_users where user_id = (select auth.uid()));
 $$;
 
@@ -238,8 +238,6 @@ create policy "public can read active lengths" on public.service_lengths for sel
 create policy "public can read active options" on public.service_options for select to anon, authenticated using (is_active);
 create policy "public can read active payment methods" on public.payment_methods for select to anon, authenticated using (is_active);
 create policy "public can read availability" on public.availability_rules for select to anon, authenticated using (is_active);
-create policy "public can read blocked dates" on public.blocked_dates for select to anon, authenticated using (true);
-create policy "public can read blocked times" on public.blocked_times for select to anon, authenticated using (true);
 create policy "public can read active gallery" on public.gallery_items for select to anon, authenticated using (is_active);
 create policy "public can read visible sections" on public.website_sections for select to anon, authenticated using (is_visible);
 create policy "public can read visible policies" on public.policies for select to anon, authenticated using (is_visible);
