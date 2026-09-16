@@ -14,15 +14,6 @@ document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('clic
 }));
 
 const modal = document.querySelector('#booking-modal');
-const bookingForm = document.querySelector('#booking-form');
-if (bookingForm && !bookingForm.querySelector('[name="location"]')) {
-  const makeField = (labelText, name, tag = 'input', attributes = {}) => {
-    const label = document.createElement('label'); label.textContent = labelText;
-    const field = document.createElement(tag); field.name = name; Object.entries(attributes).forEach(([key, value]) => field.setAttribute(key, value));
-    label.append(field); return label;
-  };
-  bookingForm.querySelector('button[type="submit"]').before(makeField('LOCATION / ADDRESS', 'location', 'input', { placeholder: 'Address if required', autocomplete: 'street-address' }), makeField('ADDITIONAL NOTES', 'notes', 'textarea', { rows: '3', placeholder: 'Anything Maeva should know?' }));
-}
 const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {} };
 const catalogOptions = {};
 const catalogDetails = {};
@@ -275,18 +266,6 @@ async function loadPublicContent() {
     }
     const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
     const homeSectionNodes = { hero: document.querySelector('.hero'), services: document.querySelector('#services'), gallery: document.querySelector('#gallery'), policies: document.querySelector('#policies'), contact: document.querySelector('#contact'), booking: document.querySelector('#booking') };
-    if (Array.isArray(data.policies) && data.policies.length) {
-      const policyList = document.querySelector('#policies .policy-list');
-      if (policyList) {
-        policyList.replaceChildren();
-        data.policies.sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)).forEach((policy, index) => {
-          const details = document.createElement('details'); if (index === 0) details.open = true;
-          const summary = document.createElement('summary'); summary.append(document.createTextNode(policy.title || policy.policy_key || 'Policy'), Object.assign(document.createElement('span'), { textContent: '＋' }));
-          const body = document.createElement('p'); body.textContent = policy.body || '';
-          details.append(summary, body); policyList.append(details);
-        });
-      }
-    }
     (data.sectionVisibility || []).forEach((section) => { const node = homeSectionNodes[section.section_key]; if (node) node.hidden = section.is_visible === false; });
     const mainContent = document.querySelector('main');
     const orderedHomeSections = (data.sectionVisibility || []).filter((section) => section.is_visible !== false && homeSectionNodes[section.section_key]).sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
