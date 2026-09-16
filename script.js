@@ -266,6 +266,17 @@ async function loadPublicContent() {
     }
     const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
     const homeSectionNodes = { hero: document.querySelector('.hero'), services: document.querySelector('#services'), gallery: document.querySelector('#gallery'), policies: document.querySelector('#policies'), contact: document.querySelector('#contact'), booking: document.querySelector('#booking') };
+    (data.sections || []).filter((section) => section.page_slug === 'home' && !homeSectionNodes[section.section_key]).forEach((section) => {
+      const content = section.content || {}; const node = document.createElement('section'); node.className = 'section cms-section'; node.dataset.sectionKey = section.section_key;
+      const heading = document.createElement('div'); heading.className = 'section-heading';
+      if (content.eyebrow) { const eyebrow = document.createElement('p'); eyebrow.className = 'eyebrow'; eyebrow.textContent = content.eyebrow; heading.append(eyebrow); }
+      if (content.title || content.heading) { const title = document.createElement('h2'); title.textContent = content.title || content.heading; heading.append(title); }
+      if (heading.children.length) node.append(heading);
+      if (content.description || content.body) { const copy = document.createElement('p'); copy.textContent = content.description || content.body; node.append(copy); }
+      if (content.image || content.imageUrl) { const image = document.createElement('div'); image.className = 'cms-section-image'; image.setAttribute('role', 'img'); image.setAttribute('aria-label', content.altText || content.title || section.section_key); image.style.backgroundImage = `url("${String(content.image || content.imageUrl).replaceAll('"', '')}")`; node.append(image); }
+      if (content.primaryCta && content.primaryCtaLink) { const link = document.createElement('a'); link.className = 'pill pill-dark'; link.href = content.primaryCtaLink; link.textContent = content.primaryCta; node.append(link); }
+      homeSectionNodes[section.section_key] = node; document.querySelector('main').append(node);
+    });
     (data.sectionVisibility || []).forEach((section) => { const node = homeSectionNodes[section.section_key]; if (node) node.hidden = section.is_visible === false; });
     const mainContent = document.querySelector('main');
     const orderedHomeSections = (data.sectionVisibility || []).filter((section) => section.is_visible !== false && homeSectionNodes[section.section_key]).sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
