@@ -271,6 +271,10 @@ async function loadPublicContent() {
     const orderedHomeSections = (data.sectionVisibility || []).filter((section) => section.is_visible !== false && homeSectionNodes[section.section_key]).sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
     orderedHomeSections.forEach((section) => mainContent.append(homeSectionNodes[section.section_key]));
     if (heroSection?.content) {
+      const heroTitle = heroSection.content.title || heroSection.content.headline;
+      const heroSubtitle = heroSection.content.subtitle || heroSection.content.tagline;
+      if (heroTitle) document.querySelector('.hero h1').textContent = heroTitle;
+      if (heroSubtitle) document.querySelector('.hero-copy>p').textContent = heroSubtitle;
       if (heroSection.content.description) document.querySelector('.hero-copy>p').textContent = heroSection.content.description;
       if (heroSection.content.primaryCta) document.querySelector('.hero-actions .pill').firstChild.textContent = `${heroSection.content.primaryCta} `;
       if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
