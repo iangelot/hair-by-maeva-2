@@ -37,17 +37,13 @@ insert into public.service_lengths(service_id,name,price,display_order)
 select s.id,x.name,x.price,x.display_order from public.services s cross join (values ('Bob',220,1),('Middle',250,2),('Waist',300,3),('Butt',350,4)) x(name,price,display_order) where s.slug='xsmall-knotless' on conflict(service_id,name) do update set price=excluded.price,display_order=excluded.display_order;
 insert into public.service_lengths(service_id,name,price,display_order)
 select s.id,x.name,x.price,x.display_order from public.services s cross join (values ('Medium',250,1),('Small',300,2),('Xsmall',350,3)) x(name,price,display_order) where s.slug='bora-bora-braids' on conflict(service_id,name) do update set price=excluded.price,display_order=excluded.display_order;
-update public.service_options o
-set price_delta=x.price_delta,display_order=x.display_order,is_active=true
-from public.services s cross join (values ('Stitch braid',220,1),('Regular braids',180,2)) x(name,price_delta,display_order)
-where o.service_id=s.id and s.slug='ponytail' and o.name=x.name;
-insert into public.service_options(service_id,name,price_delta,display_order)
-select s.id,x.name,x.price_delta,x.display_order from public.services s cross join (values ('Stitch braid',220,1),('Regular braids',180,2)) x(name,price_delta,display_order)
-where s.slug='ponytail' and not exists (select 1 from public.service_options o where o.service_id=s.id and o.name=x.name);
-update public.service_options o
-set price_delta=x.price_delta,display_order=x.display_order,is_active=true
-from public.services s cross join (values ('Stitch braid',220,1),('Regular braids',200,2)) x(name,price_delta,display_order)
-where o.service_id=s.id and s.slug='fulani-braids' and o.name=x.name;
-insert into public.service_options(service_id,name,price_delta,display_order)
-select s.id,x.name,x.price_delta,x.display_order from public.services s cross join (values ('Stitch braid',220,1),('Regular braids',200,2)) x(name,price_delta,display_order)
-where s.slug='fulani-braids' and not exists (select 1 from public.service_options o where o.service_id=s.id and o.name=x.name);
+insert into public.service_lengths(service_id,name,price,display_order)
+select s.id,x.name,x.price,x.display_order from public.services s cross join (values ('Stitch braid',220,1),('Regular braids',180,2)) x(name,price,display_order) where s.slug='ponytail' on conflict(service_id,name) do update set price=excluded.price,display_order=excluded.display_order;
+insert into public.service_lengths(service_id,name,price,display_order)
+select s.id,x.name,x.price,x.display_order from public.services s cross join (values ('Stitch braid',220,1),('Regular braids',200,2)) x(name,price,display_order) where s.slug='fulani-braids' on conflict(service_id,name) do update set price=excluded.price,display_order=excluded.display_order;
+insert into public.service_lengths(service_id,name,price,display_order)
+select s.id,x.name,x.price,x.display_order from public.services s cross join (values ('Half side stitch braid',220,1)) x(name,price,display_order) where s.slug='half-side-stitch-braid' on conflict(service_id,name) do update set price=excluded.price,display_order=excluded.display_order;
+insert into public.service_lengths(service_id,name,price,display_order)
+select s.id,x.name,x.price,x.display_order from public.services s cross join (values ('Micro twist',300,1)) x(name,price,display_order) where s.slug='micro-twist' on conflict(service_id,name) do update set price=excluded.price,display_order=excluded.display_order;
+delete from public.service_options where service_id in (select id from public.services where slug in ('ponytail','fulani-braids'));
+delete from public.service_lengths where service_id in (select id from public.services where slug in ('ponytail','fulani-braids')) and name='Standard';

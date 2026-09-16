@@ -52,11 +52,16 @@ const catalogLengths = {
   'Medium Knotless': { Bob: 180, Middle: 200, Waist: 230, Butt: 260 },
   'Xsmall Knotless': { Bob: 220, Middle: 250, Waist: 300, Butt: 350 },
   'Bora Bora Braids': { Medium: 250, Small: 300, Xsmall: 350 },
-  'Ponytail': {}, 'Fulani Braids': {}, 'Half Side Stitch Braid': {}, 'Micro Twist': {},
+  'Ponytail': { 'Stitch braid': 220, 'Regular braids': 180 },
+  'Fulani Braids': { 'Stitch braid': 220, 'Regular braids': 200 },
+  'Half Side Stitch Braid': { 'Half side stitch braid': 220 }, 'Micro Twist': { 'Micro twist': 300 },
   'Soft Locs': { Bob: 220, Middle: 250, Waist: 280 },
 };
 const syncLengthOptions = () => {
   const available = catalogLengths[selected.service] || {};
+  const directChoice = ['Ponytail', 'Fulani Braids', 'Half Side Stitch Braid', 'Micro Twist'].includes(selected.service);
+  const lengthHeading = document.querySelector('.modal-step[data-step="length"] h2');
+  if (lengthHeading) lengthHeading.innerHTML = `Choose your<br /><em>${directChoice ? 'option' : 'length'}.</em>`;
   let preview = document.querySelector('#selected-service-preview');
   if (!preview) { preview = document.createElement('div'); preview.id = 'selected-service-preview'; preview.className = 'selected-service-preview'; const lengthStep = document.querySelector('.modal-step[data-step="length"]'); lengthStep.querySelector('h2').before(preview); }
   applyBackgroundImage(preview, catalogImages[selected.service], catalogImageFallbacks[selected.service]);
@@ -67,16 +72,12 @@ const syncLengthOptions = () => {
   detailCopy.replaceChildren();
   [['Description', details.description], ['Notes', details.notes], ['Preparation', details.preparation_instructions]].filter(([, value]) => value).forEach(([label, value]) => { const paragraph = document.createElement('p'); paragraph.innerHTML = `<strong>${label}</strong> `; paragraph.append(document.createTextNode(value)); detailCopy.append(paragraph); });
   detailCopy.classList.toggle('hidden', !detailCopy.children.length);
-  document.querySelectorAll('.length-grid button').forEach((button) => {
-    const name = button.dataset.value.split(' — ')[0];
-    const price = available[name];
-    const lengthId = (catalogLengthIds[selected.service] || {})[name];
-    button.hidden = price === undefined;
-    if (price !== undefined) {
-      button.dataset.value = `${name} — $${price}`;
-      button.dataset.lengthId = lengthId || '';
-      button.querySelector('small').textContent = `$${price}`;
-    }
+  const lengthGrid = document.querySelector('.length-grid');
+  lengthGrid.replaceChildren();
+  Object.entries(available).forEach(([name, price]) => {
+    const button = document.createElement('button'); button.type = 'button'; button.dataset.value = `${name} — $${price}`; button.dataset.lengthId = (catalogLengthIds[selected.service] || {})[name] || '';
+    button.append(document.createTextNode(name.toUpperCase()), Object.assign(document.createElement('small'), { textContent: `$${price}` }));
+    lengthGrid.append(button);
   });
   selected.length = '';
   selected.lengthId = '';
@@ -157,7 +158,7 @@ document.querySelector('.modal-close').addEventListener('click', closeModal);
 document.querySelector('.modal-close-success').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 document.querySelectorAll('.modal-options button').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { selected.entryPoint = 'general'; document.querySelectorAll('.modal-options button').forEach((item) => item.classList.remove('is-selected')); btn.classList.add('is-selected'); selected.service = btn.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
-document.querySelectorAll('.length-grid button').forEach((btn) => btn.addEventListener('click', () => { document.querySelectorAll('.length-grid button').forEach((b) => b.classList.remove('picked')); btn.classList.add('picked'); selected.length = btn.dataset.value; selected.lengthId = btn.dataset.lengthId || ''; }));
+document.querySelector('.length-grid').addEventListener('click', (event) => { const btn = event.target.closest('button'); if (!btn) return; document.querySelectorAll('.length-grid button').forEach((item) => item.classList.remove('picked')); btn.classList.add('picked'); selected.length = btn.dataset.value; selected.lengthId = btn.dataset.lengthId || ''; });
 document.querySelector('.modal-step[data-step="length"] .modal-next').addEventListener('click', () => { if (!selected.length) return alert('Please choose a length.'); showStep('date'); });
 
 document.querySelector('#booking-form').addEventListener('submit', (e) => {
