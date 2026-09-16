@@ -19,10 +19,10 @@ module.exports = async function handler(req, res) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !serviceSlug) return json(res, 400, { error: 'Choose a date and service.' });
     const settings = (await supabase('booking_settings?id=eq.1&select=minimum_notice_hours,maximum_advance_days&limit=1'))[0] || {};
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-    const requestedDay = appointmentDateTime(date, '23:59');
+    const requestedDay = appointmentDateTime(date, '00:00');
     const minNotice = Number(settings.minimum_notice_hours ?? process.env.BOOKING_MIN_NOTICE_HOURS ?? 0);
     const maxAdvanceDays = Number(settings.maximum_advance_days ?? process.env.BOOKING_MAX_ADVANCE_DAYS ?? 365);
-    if (Number.isNaN(requestedDay.getTime()) || requestedDay.getTime() < Date.now() + minNotice * 60 * 60 * 1000 || requestedDay.getTime() > Date.now() + maxAdvanceDays * 24 * 60 * 60 * 1000) return json(res, 200, { date, slots: [] });
+    if (Number.isNaN(requestedDay.getTime()) || requestedDay.getTime() > Date.now() + maxAdvanceDays * 24 * 60 * 60 * 1000) return json(res, 200, { date, slots: [] });
     const [rules, blockedDates, blockedTimes, services, bookings] = await Promise.all([
       supabase(`availability_rules?weekday=eq.${weekday}&is_active=eq.true&select=start_time,end_time`),
       supabase(`blocked_dates?blocked_date=eq.${date}&select=id`),
