@@ -14,7 +14,7 @@ document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('clic
 }));
 
 const modal = document.querySelector('#booking-modal');
-const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {} };
+const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {}, entryPoint: 'general' };
 const bookingStepNumbers = { service: '01 / 07', length: '02 / 07', date: '03 / 07', time: '04 / 07', details: '05 / 07', review: '06 / 07' };
 Object.entries(bookingStepNumbers).forEach(([step, label]) => { const eyebrow = document.querySelector(`.modal-step[data-step="${step}"] .eyebrow`); if (eyebrow) eyebrow.textContent = label; });
 const catalogOptions = {};
@@ -148,15 +148,15 @@ document.querySelectorAll('.modal-step').forEach((step) => {
   const back = document.createElement('button'); back.type = 'button'; back.className = 'modal-back'; back.textContent = '← BACK'; back.dataset.back = target; step.prepend(back);
 });
 const showStep = (step) => { document.querySelectorAll('.modal-step').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== step)); document.querySelector('.modal-success').classList.add('hidden'); };
-document.querySelector('.booking-modal').addEventListener('click', (event) => { const back = event.target.closest('[data-back]'); if (back) showStep(back.dataset.back); });
-const openModal = () => { lastFocusedElement = document.activeElement; modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); showStep('service'); modal.querySelector('.modal-close').focus(); };
-document.querySelector('#start-booking').addEventListener('click', () => { selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal(); });
-document.querySelectorAll('.hero-actions .pill, .drawer-book').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); setDrawer(false); selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal(); }));
-document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { openModal(); selected.service = btn.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
+document.querySelector('.booking-modal').addEventListener('click', (event) => { const back = event.target.closest('[data-back]'); if (!back) return; if (back.dataset.back === 'service' && selected.entryPoint === 'service-card') { closeModal(); return; } showStep(back.dataset.back); });
+const openModal = (entryPoint = 'general') => { selected.entryPoint = entryPoint; lastFocusedElement = document.activeElement; modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); showStep('service'); modal.querySelector('.modal-close').focus(); };
+document.querySelector('#start-booking').addEventListener('click', () => { selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal('general'); });
+document.querySelectorAll('.hero-actions .pill, .drawer-book').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); setDrawer(false); selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal('general'); }));
+document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { openModal('service-card'); selected.service = btn.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
 document.querySelector('.modal-close').addEventListener('click', closeModal);
 document.querySelector('.modal-close-success').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-document.querySelectorAll('.modal-options button').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { document.querySelectorAll('.modal-options button').forEach((item) => item.classList.remove('is-selected')); btn.classList.add('is-selected'); selected.service = btn.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
+document.querySelectorAll('.modal-options button').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { selected.entryPoint = 'general'; document.querySelectorAll('.modal-options button').forEach((item) => item.classList.remove('is-selected')); btn.classList.add('is-selected'); selected.service = btn.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
 document.querySelectorAll('.length-grid button').forEach((btn) => btn.addEventListener('click', () => { document.querySelectorAll('.length-grid button').forEach((b) => b.classList.remove('picked')); btn.classList.add('picked'); selected.length = btn.dataset.value; selected.lengthId = btn.dataset.lengthId || ''; }));
 document.querySelector('.modal-step[data-step="length"] .modal-next').addEventListener('click', () => { if (!selected.length) return alert('Please choose a length.'); showStep('date'); });
 
@@ -319,10 +319,10 @@ async function loadPublicContent() {
           if (serviceImage) { const imagePath = /^https?:\/\//.test(serviceImage) ? serviceImage : `/${String(serviceImage).replace(/^\/+/, '')}`; catalogImages[service.name] = imagePath; applyBackgroundImage(card.querySelector('.service-image'), imagePath, catalogImageFallbacks[service.name]); }
           card.querySelector('.service-image').setAttribute('aria-label', `${service.name} hairstyle`);
           const book = card.querySelector('.service-book'); book.dataset.service = service.name;
-          if (book.dataset.bound !== 'true') { book.dataset.bound = 'true'; book.addEventListener('click', () => { openModal(); selected.service = book.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); }
+          if (book.dataset.bound !== 'true') { book.dataset.bound = 'true'; book.addEventListener('click', () => { openModal('service-card'); selected.service = book.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); }
         }
         const option = document.querySelectorAll('.modal-options button')[index];
-        if (option) { option.dataset.value = service.name; option.firstChild.textContent = `${service.name} `; option.querySelector('span').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'VIEW DETAILS'; if (option.dataset.bound !== 'true') { option.dataset.bound = 'true'; option.addEventListener('click', () => { selected.service = option.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); } }
+        if (option) { option.dataset.value = service.name; option.firstChild.textContent = `${service.name} `; option.querySelector('span').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'VIEW DETAILS'; if (option.dataset.bound !== 'true') { option.dataset.bound = 'true'; option.addEventListener('click', () => { selected.entryPoint = 'general'; selected.service = option.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); } }
       });
     }
     if (Array.isArray(data.categories) && data.categories.length) {

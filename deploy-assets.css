@@ -1,2 +1,7 @@
+/* Homepage hairstyle cards prioritize seeing the full finished style. */
+.service-card{grid-template-columns:minmax(155px,44%) 1fr;min-height:185px}
+.service-image{background-color:#e9dfd2;background-size:contain;background-repeat:no-repeat;background-position:center}
+@media(min-width:700px){.service-card{display:block;min-height:0}.service-image{height:330px}.service-info{height:150px}}
+
 /* Production assets stay same-origin so the Figma-matched imagery is reliable. */
 .hero-image{background-image:url('./assets/web/hero.jpg')}.image-one{background-image:url('./assets/web/gallery-1.jpg')}.image-two{background-image:url('./assets/web/gallery-2.jpg')}.image-three{background-image:url('./assets/web/gallery-3.jpg')}.image-four{background-image:url('./assets/web/gallery-4.jpg')}.gallery-section{background-image:linear-gradient(rgba(245,239,230,.58),rgba(245,239,230,.58)),url('./assets/web/policies.jpg')}.gallery-grid .gallery-tile:nth-child(1){background-image:url('./assets/web/gallery-1.jpg')}.gallery-grid .gallery-tile:nth-child(2){background-image:url('./assets/web/gallery-2.jpg')}.gallery-grid .gallery-tile:nth-child(3){background-image:url('./assets/web/gallery-3.jpg')}.gallery-grid .gallery-tile:nth-child(4){background-image:url('./assets/web/gallery-4.jpg')}
