@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const nodemailer = require('nodemailer');
 
 function env(name) {
   const value = process.env[name];
@@ -84,6 +85,10 @@ function escapeHtml(value) {
 }
 
 async function sendEmail({ to, subject, html, replyTo }) {
+  if (process.env.GMAIL_SMTP_EMAIL && process.env.GMAIL_SMTP_APP_PASSWORD) {
+    const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: env('GMAIL_SMTP_EMAIL'), pass: env('GMAIL_SMTP_APP_PASSWORD') } });
+    return transporter.sendMail({ from: `Hair by Maeva <${env('GMAIL_SMTP_EMAIL')}>`, to, subject, html, ...(replyTo ? { replyTo } : {}) });
+  }
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
