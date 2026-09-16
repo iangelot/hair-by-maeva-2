@@ -13,7 +13,12 @@ module.exports = async function handler(req, res) {
       supabase('website_sections?page_slug=eq.home&select=section_key,is_visible,display_order&order=display_order.asc'),
     ]);
     const mediaBase = `${env('SUPABASE_URL')}/storage/v1/object/public/hair-media/`;
-    const publicMediaUrl = (path) => path && path.startsWith('http') ? path : path ? `${mediaBase}${String(path).replace(/^\/+/, '')}` : '';
+    const publicMediaUrl = (path) => {
+      if (!path) return '';
+      if (path.startsWith('http')) return path;
+      if (/^assets\//i.test(String(path).replace(/^\/+/, ''))) return `/${String(path).replace(/^\/+/, '')}`;
+      return `${mediaBase}${String(path).replace(/^\/+/, '')}`;
+    };
     return json(res, 200, { policies, socials, sections, sectionVisibility, services: services.map((item) => ({ ...item, image_url: publicMediaUrl(item.image_path) })), categories, gallery: gallery.map((item) => ({ ...item, public_url: publicMediaUrl(item.image_path) })) });
   } catch (error) {
     console.error(error);

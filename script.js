@@ -22,7 +22,13 @@ const catalogDetails = {};
 const catalogServiceIds = {};
 const catalogLengthIds = {};
 selected.booking = null;
-const catalogImageFallbacks = { 'Senegalese Twist': './assets/web/gallery-1.jpg', 'Boho Knotless': './assets/web/gallery-2.jpg', 'Soft Locs': './assets/web/gallery-3.jpg' };
+const catalogImageFallbacks = {
+  'Senegalese Twist': './assets/styles/senegalese-twist.png', 'French Curly': './assets/styles/french-curly-long.jpeg', 'Ponytail': './assets/styles/pony-tail.jpeg',
+  'Fulani Braids': './assets/styles/braid-parting.jpeg', 'Miracles Knotless Braids': './assets/styles/long-box-braids.png', 'Box Braids': './assets/styles/box-braids.png',
+  'Jumbo Knotless': './assets/styles/long-box-braids.png', 'Small Knotless': './assets/styles/stitch-braids.jpeg', 'Medium Knotless': './assets/styles/senegalese-twist.png',
+  'Xsmall Knotless': './assets/styles/long-braids-ponytail.jpeg', 'Bora Bora Braids': './assets/styles/curly-boho.png', 'Half Side Stitch Braid': './assets/styles/half-side-stitch.jpeg',
+  'Micro Twist': './assets/styles/micro-twist.jpeg', 'Boho Knotless': './assets/styles/french-curly.jpeg', 'Soft Locs': './assets/web/gallery-3.jpg'
+};
 const catalogImages = { ...catalogImageFallbacks };
 const applyBackgroundImage = (element, source, fallback) => {
   const safeSource = String(source || '').replaceAll('"', '');
@@ -37,7 +43,16 @@ const applyBackgroundImage = (element, source, fallback) => {
 };
 const catalogLengths = {
   'Senegalese Twist': { Bob: 200, Middle: 230, Waist: 260, Butt: 300 },
-  'Boho Knotless': { Bob: 180, Middle: 210, Waist: 240 },
+  'French Curly': { Medium: 200, Small: 250, Xsmall: 300 },
+  'Boho Knotless': { Bob: 230, Middle: 250, Waist: 270, Butt: 330 },
+  'Miracles Knotless Braids': { Medium: 180, Small: 220, Xsmall: 250 },
+  'Box Braids': { Bob: 200, Middle: 230, Waist: 260, Butt: 300 },
+  'Jumbo Knotless': { Bob: 120, Middle: 150, Waist: 200, Butt: 220 },
+  'Small Knotless': { Bob: 200, Middle: 220, Waist: 260, Butt: 300 },
+  'Medium Knotless': { Bob: 180, Middle: 200, Waist: 230, Butt: 260 },
+  'Xsmall Knotless': { Bob: 220, Middle: 250, Waist: 300, Butt: 350 },
+  'Bora Bora Braids': { Medium: 250, Small: 300, Xsmall: 350 },
+  'Ponytail': {}, 'Fulani Braids': {}, 'Half Side Stitch Braid': {}, 'Micro Twist': {},
   'Soft Locs': { Bob: 220, Middle: 250, Waist: 280 },
 };
 const syncLengthOptions = () => {
