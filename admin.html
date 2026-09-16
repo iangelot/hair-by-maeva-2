@@ -47,6 +47,8 @@
       const { data: bookings, error } = await client.from('bookings').select('id,booking_number,service_name_snapshot,length_name_snapshot,appointment_date,appointment_time,total_price,reservation_fee,admin_notes,payment_status,status,customers(full_name,email)').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true }).limit(100);
       if (error) { setStatus(error.message, true); return; }
       const rows = bookings || [];
+      if (!document.querySelector('#deposit-total')) { const card = document.createElement('article'); card.innerHTML = '<span class="eyebrow">DEPOSITS</span><strong id="deposit-total">$0.00</strong><p>Recorded reservation fees</p>'; document.querySelector('.admin-grid').append(card); }
+      document.querySelector('#deposit-total').textContent = `$${rows.filter((item) => item.payment_status === 'payment_verified' || item.status === 'confirmed').reduce((sum, item) => sum + Number(item.reservation_fee || 0), 0).toFixed(2)}`;
       document.querySelector('#today-count').textContent = rows.filter((item) => item.appointment_date === today && item.status !== 'cancelled').length;
       document.querySelector('#payment-count').textContent = rows.filter((item) => item.payment_status === 'payment_submitted').length;
       document.querySelector('#upcoming-count').textContent = rows.filter((item) => item.appointment_date >= today && item.status !== 'cancelled').length;
