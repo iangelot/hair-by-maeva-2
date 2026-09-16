@@ -178,13 +178,14 @@
               const folder = path.split('/')[0] || 'services';
               const filename = path.split('/').slice(1).join('/') || processedFile.name || 'image.jpg';
 
-              const res = await fetch('/api/admin-upload', {
+              const res = await fetch('/api/admin-booking-action', {
                 method: 'POST',
                 headers: {
                   Authorization: getAuthHeaders().Authorization,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
+                  action: 'upload_image',
                   folder,
                   filename,
                   contentType: processedFile.type || 'image/jpeg',
