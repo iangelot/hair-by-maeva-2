@@ -22,7 +22,19 @@ const catalogDetails = {};
 const catalogServiceIds = {};
 const catalogLengthIds = {};
 selected.booking = null;
-const catalogImages = { 'Senegalese Twist': './assets/web/gallery-1.jpg', 'Boho Knotless': './assets/web/gallery-2.jpg', 'Soft Locs': './assets/web/gallery-3.jpg' };
+const catalogImageFallbacks = { 'Senegalese Twist': './assets/web/gallery-1.jpg', 'Boho Knotless': './assets/web/gallery-2.jpg', 'Soft Locs': './assets/web/gallery-3.jpg' };
+const catalogImages = { ...catalogImageFallbacks };
+const applyBackgroundImage = (element, source, fallback) => {
+  const safeSource = String(source || '').replaceAll('"', '');
+  const safeFallback = String(fallback || '').replaceAll('"', '');
+  if (!safeSource) { element.style.backgroundImage = safeFallback ? `url("${safeFallback}")` : ''; return; }
+  element.style.backgroundImage = `url("${safeSource}")`;
+  if (!safeFallback || safeSource === safeFallback) return;
+  const probe = new Image();
+  probe.onload = () => { element.style.backgroundImage = `url("${safeSource}")`; };
+  probe.onerror = () => { element.style.backgroundImage = `url("${safeFallback}")`; };
+  probe.src = safeSource;
+};
 const catalogLengths = {
   'Senegalese Twist': { Bob: 200, Middle: 230, Waist: 260, Butt: 300 },
   'Boho Knotless': { Bob: 180, Middle: 210, Waist: 240 },
@@ -32,7 +44,7 @@ const syncLengthOptions = () => {
   const available = catalogLengths[selected.service] || {};
   let preview = document.querySelector('#selected-service-preview');
   if (!preview) { preview = document.createElement('div'); preview.id = 'selected-service-preview'; preview.className = 'selected-service-preview'; const lengthStep = document.querySelector('.modal-step[data-step="length"]'); lengthStep.querySelector('h2').before(preview); }
-  preview.style.backgroundImage = catalogImages[selected.service] ? `url("${catalogImages[selected.service]}")` : '';
+  applyBackgroundImage(preview, catalogImages[selected.service], catalogImageFallbacks[selected.service]);
   preview.textContent = selected.service || 'Choose a service';
   let detailCopy = document.querySelector('#selected-service-details');
   if (!detailCopy) { detailCopy = document.createElement('div'); detailCopy.id = 'selected-service-details'; detailCopy.className = 'selected-service-details'; preview.after(detailCopy); }
@@ -202,6 +214,8 @@ const dateInput = document.querySelector('input[name="date"]');
 dateInput.min = new Date().toISOString().slice(0, 10);
 const timeSelect = document.querySelector('select[name="time"]');
 timeSelect.setAttribute('aria-label', 'Available appointment time');
+const dateHelper = document.querySelector('.modal-step[data-step="date"] .step-helper');
+const dateNext = document.querySelector('#date-next');
 const detailsForm = document.querySelector('#booking-form');
 const phoneField = detailsForm.querySelector('input[name="phone"]');
 if (!detailsForm.querySelector('[name="location"]')) {
@@ -212,17 +226,21 @@ if (!detailsForm.querySelector('[name="location"]')) {
 }
 async function loadAvailability() {
   timeSelect.innerHTML = '<option value="">Loading available times…</option>';
+  dateNext.disabled = true;
+  if (dateHelper) { dateHelper.textContent = 'Checking available appointment times…'; dateHelper.classList.remove('availability-error'); }
   if (!dateInput.value || !selected.service) { timeSelect.innerHTML = '<option value="">Choose a date first</option>'; return false; }
   try {
     const response = await fetch(`/api/availability?date=${encodeURIComponent(dateInput.value)}&serviceSlug=${encodeURIComponent(selected.service.toLowerCase().replaceAll(' ', '-'))}`);
     const data = await response.json();
     if (!response.ok || !data.slots?.length) throw new Error('No appointment times are available on this date.');
     timeSelect.innerHTML = '<option value="">Choose an available time</option>' + data.slots.map((slot) => `<option value="${slot}">${slot}</option>`).join('');
+    if (dateHelper) dateHelper.textContent = 'Times found — choose one to continue.';
+    dateNext.disabled = false;
     return true;
-  } catch (error) { timeSelect.innerHTML = `<option value="">${error.message}</option>`; return false; }
+  } catch (error) { timeSelect.innerHTML = `<option value="">${error.message}</option>`; if (dateHelper) { dateHelper.textContent = error.message; dateHelper.classList.add('availability-error'); } return false; }
 }
 dateInput.addEventListener('change', loadAvailability);
-document.querySelector('#date-next').addEventListener('click', async () => {
+dateNext.addEventListener('click', async () => {
   if (!dateInput.value) return alert('Please choose a date.');
   if (!await loadAvailability()) return;
   showStep('time');
@@ -262,7 +280,7 @@ async function loadPublicContent() {
           card.querySelector('.service-from').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'PRICING AVAILABLE SOON';
           card.dataset.category = service.category?.slug || card.dataset.category;
           const serviceImage = service.image_url || service.image_path;
-          if (serviceImage) { const imagePath = /^https?:\/\//.test(serviceImage) ? serviceImage : `/${String(serviceImage).replace(/^\/+/, '')}`; catalogImages[service.name] = imagePath; card.querySelector('.service-image').style.backgroundImage = `url("${imagePath.replaceAll('"', '')}")`; }
+          if (serviceImage) { const imagePath = /^https?:\/\//.test(serviceImage) ? serviceImage : `/${String(serviceImage).replace(/^\/+/, '')}`; catalogImages[service.name] = imagePath; applyBackgroundImage(card.querySelector('.service-image'), imagePath, catalogImageFallbacks[service.name]); }
           card.querySelector('.service-image').setAttribute('aria-label', `${service.name} hairstyle`);
           const book = card.querySelector('.service-book'); book.dataset.service = service.name;
           if (book.dataset.bound !== 'true') { book.dataset.bound = 'true'; book.addEventListener('click', () => { openModal(); selected.service = book.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); }

@@ -19,6 +19,7 @@
 .modal-step>label{display:block;margin-top:8px}
 .modal-step select{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;padding:13px 0;font:16px var(--sans);color:var(--ink);outline:none}
 .modal-step select:focus{border-color:var(--wine)}
+.availability-error{color:#8c3131}
 .modal-step[data-step="date"] .modal-next,.modal-step[data-step="time"] .modal-next{margin-top:auto}
 .modal-back{align-self:flex-start;padding:0 0 18px;color:var(--ink);font:11px var(--display);letter-spacing:.04em}
 .selected-service-preview{height:170px;margin:0 0 22px;background-color:#e4d0b8;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:14px;color:#fff;font:20px var(--display);text-shadow:0 1px 10px rgba(0,0,0,.45)}
