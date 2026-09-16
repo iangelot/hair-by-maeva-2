@@ -57,7 +57,7 @@ const syncLengthOptions = () => {
   let optionWrap = document.querySelector('#service-options');
   if (!optionWrap) { optionWrap = document.createElement('div'); optionWrap.id = 'service-options'; optionWrap.className = 'service-options'; document.querySelector('.length-grid').after(optionWrap); }
   optionWrap.replaceChildren();
-  (catalogOptions[selected.service] || []).forEach((option) => { const label = document.createElement('label'); label.className = 'service-option'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = 'service-option'; checkbox.value = option.name; checkbox.dataset.delta = option.price_delta; label.append(checkbox, document.createTextNode(`${option.name}${Number(option.price_delta) ? ` (+$${Number(option.price_delta).toFixed(0)})` : ''}`)); optionWrap.append(label); });
+  (catalogOptions[selected.service] || []).forEach((option) => { const label = document.createElement('label'); label.className = 'service-option'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = 'service-option'; checkbox.value = option.name; checkbox.dataset.delta = option.price_delta; checkbox.addEventListener('change', () => label.classList.toggle('is-selected', checkbox.checked)); label.append(checkbox, document.createTextNode(`${option.name}${Number(option.price_delta) ? ` (+$${Number(option.price_delta).toFixed(0)})` : ''}`)); optionWrap.append(label); });
 };
 const paymentStep = document.createElement('div');
 document.querySelector('#submit-booking').textContent = 'PROCEED TO PAYMENT ↗';
@@ -81,6 +81,8 @@ const loadPaymentMethods = async () => {
       methodButton.addEventListener('click', () => {
       const method = paymentMethods.find((item) => item.id === methodButton.dataset.methodId);
       if (!method) return;
+       list.querySelectorAll('.payment-method-option').forEach((item) => item.classList.remove('is-selected'));
+       methodButton.classList.add('is-selected');
        paymentStep.querySelector('#payment-method-name').textContent = method.name.toUpperCase();
        const copy = paymentStep.querySelector('#payment-method-copy');
        copy.textContent = method.instructions || 'Send the reservation fee, then return here and confirm payment.';
@@ -96,6 +98,10 @@ const loadPaymentMethods = async () => {
       selected.paymentMethodId = method.id;
       });
     });
+    if (!methods.some((method) => /cash\s*app/i.test(method.name || ''))) {
+      const unavailable = document.createElement('button'); unavailable.type = 'button'; unavailable.className = 'payment-method-option is-unavailable'; unavailable.disabled = true;
+      unavailable.append(document.createTextNode('Cash App'), Object.assign(document.createElement('span'), { textContent: 'DETAILS COMING SOON' })); list.append(unavailable);
+    }
   } catch (error) { list.innerHTML = `<p class="payment-error">Payment options are not enabled yet. Maeva’s payment details will appear here as soon as they are configured.</p>`; }
 };
 let lastFocusedElement = null;
@@ -115,7 +121,7 @@ document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound 
 document.querySelector('.modal-close').addEventListener('click', closeModal);
 document.querySelector('.modal-close-success').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-document.querySelectorAll('.modal-options button').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { selected.service = btn.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
+document.querySelectorAll('.modal-options button').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { document.querySelectorAll('.modal-options button').forEach((item) => item.classList.remove('is-selected')); btn.classList.add('is-selected'); selected.service = btn.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
 document.querySelectorAll('.length-grid button').forEach((btn) => btn.addEventListener('click', () => { document.querySelectorAll('.length-grid button').forEach((b) => b.classList.remove('picked')); btn.classList.add('picked'); selected.length = btn.dataset.value; selected.lengthId = btn.dataset.lengthId || ''; }));
 document.querySelector('.modal-step[data-step="length"] .modal-next').addEventListener('click', () => { if (!selected.length) return alert('Please choose a length.'); showStep('date'); });
 

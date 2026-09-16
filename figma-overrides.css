@@ -37,5 +37,8 @@ html,body{overflow-x:hidden}
 .provider-line{margin:0 0 24px;color:#5b4038;font-size:16px;line-height:1.4}.provider-line strong{font-family:var(--display);font-weight:400;font-size:22px}
 /* Clear selection and connection states for the booking and admin flows. */
 .length-grid button.picked{background:var(--ink);border-color:var(--ink);color:var(--cream);transform:translateY(-1px);box-shadow:0 5px 0 rgba(77,44,46,.16)}
+.modal-options button.is-selected,.payment-method-option.is-selected{background:var(--ink);border-color:var(--ink);color:var(--cream);transform:translateY(-1px);box-shadow:0 5px 0 rgba(77,44,46,.16)}
+.service-option.is-selected{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.payment-method-option.is-unavailable{opacity:.55;cursor:not-allowed}
 .length-grid button:focus-visible,.modal-options button:focus-visible,.admin-action:focus-visible,.pill:focus-visible{outline:2px solid var(--wine);outline-offset:3px}
 .admin-load-error{padding:14px;border:1px solid rgba(162,57,57,.28);background:rgba(162,57,57,.06);color:#8c3131;line-height:1.45}
