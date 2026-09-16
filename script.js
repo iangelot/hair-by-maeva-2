@@ -58,6 +58,7 @@ const syncLengthOptions = () => {
   (catalogOptions[selected.service] || []).forEach((option) => { const label = document.createElement('label'); label.className = 'service-option'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = 'service-option'; checkbox.value = option.name; checkbox.dataset.delta = option.price_delta; label.append(checkbox, document.createTextNode(`${option.name}${Number(option.price_delta) ? ` (+$${Number(option.price_delta).toFixed(0)})` : ''}`)); optionWrap.append(label); });
 };
 const paymentStep = document.createElement('div');
+document.querySelector('#submit-booking').textContent = 'PROCEED TO PAYMENT ↗';
 paymentStep.className = 'modal-step hidden';
 paymentStep.dataset.step = 'payment';
 paymentStep.innerHTML = '<p class="eyebrow">07 / 07</p><h2>Choose your<br /><em>payment.</em></h2><p class="provider-line"><strong>Hair by Maeva</strong><br>Chicago, IL</p><div class="payment-method-list" id="payment-method-list"><p class="payment-loading">Loading payment methods…</p></div><div class="payment-instructions hidden" id="payment-instructions"><p class="eyebrow" id="payment-method-name">PAYMENT DETAILS</p><p id="payment-method-copy"></p><a class="pill pill-dark" id="payment-open-link" href="#" target="_blank" rel="noreferrer">OPEN PAYMENT APP ↗</a><button class="modal-next" id="payment-paid">I’VE PAID ↗</button></div>';
@@ -130,6 +131,10 @@ document.querySelector('#booking-form').addEventListener('submit', (e) => {
   locationLine.textContent = selected.details.location ? `Location: ${selected.details.location}` : '';
   locationLine.classList.toggle('hidden', !selected.details.location);
   if (!locationLine.parentElement) reviewCard.append(locationLine);
+  const notesLine = document.querySelector('#review-notes') || Object.assign(document.createElement('p'), { id: 'review-notes' });
+  notesLine.textContent = selected.details.notes ? `Notes: ${selected.details.notes}` : '';
+  notesLine.classList.toggle('hidden', !selected.details.notes);
+  if (!notesLine.parentElement) reviewCard.append(notesLine);
   const servicePrice = Number((selected.length.match(/\$(\d+(?:\.\d+)?)/) || [0, 0])[1]); const optionTotal = (catalogOptions[selected.service] || []).filter((option) => selected.details.options.includes(option.name)).reduce((sum, option) => sum + Number(option.price_delta || 0), 0);
   document.querySelector('#review-options')?.remove();
   if (selected.details.options.length) { const optionLine = document.createElement('p'); optionLine.id = 'review-options'; optionLine.textContent = `Options: ${selected.details.options.join(', ')}`; reviewCard.insertBefore(optionLine, reviewCard.querySelector('.review-line')); }
