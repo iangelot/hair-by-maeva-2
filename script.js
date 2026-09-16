@@ -286,89 +286,298 @@ document.querySelector('#time-next').addEventListener('click', () => {
   if (!timeSelect.value) return alert('Please choose an available time.');
   showStep('details');
 });
+
+function renderFormattedHeading(text, fallbackEm = true) {
+  if (!text) return '';
+  const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 1) return lines[0];
+  if (lines.length === 2 && fallbackEm) {
+    return `${lines[0]}<br /><em>${lines[1]}</em>`;
+  }
+  if (lines.length >= 3 && fallbackEm) {
+    return `${lines[0]}<br /><em>${lines[1]}</em><br />${lines.slice(2).join('<br />')}`;
+  }
+  return lines.join('<br />');
+}
+
 async function loadPublicContent() {
   try {
     const response = await fetch('/api/content');
     if (!response.ok) return;
     const data = await response.json();
+
+    // 1. Policies Accordion
     if (Array.isArray(data.policies) && data.policies.length) {
-      const policyList = document.querySelector('.policy-list'); policyList.replaceChildren();
-      data.policies.forEach((policy, index) => { const detail = document.createElement('details'); if (index === 0) detail.open = true; const summary = document.createElement('summary'); summary.append(policy.title, ' ', Object.assign(document.createElement('span'), { textContent: '＋' })); const body = document.createElement('p'); body.textContent = policy.body; detail.append(summary, body); policyList.append(detail); });
+      const policyList = document.querySelector('.policy-list');
+      if (policyList) {
+        policyList.replaceChildren();
+        data.policies.forEach((policy, index) => {
+          const detail = document.createElement('details');
+          if (index === 0) detail.open = true;
+          const summary = document.createElement('summary');
+          summary.append(document.createTextNode(policy.title), ' ', Object.assign(document.createElement('span'), { textContent: '＋' }));
+          const body = document.createElement('p');
+          body.textContent = policy.body;
+          detail.append(summary, body);
+          policyList.append(detail);
+        });
+      }
     }
+
+    // 2. Services List & Dynamic Catalog
     if (Array.isArray(data.services) && data.services.length) {
       const serviceList = document.querySelector('.service-list');
-      const serviceTemplate = serviceList.querySelector('.service-card');
-      while (serviceList.children.length < data.services.length) { const clone = serviceTemplate.cloneNode(true); clone.querySelector('.service-book').dataset.bound = ''; serviceList.append(clone); }
-      Array.from(serviceList.children).forEach((card, index) => { card.hidden = index >= data.services.length; });
-      const optionList = document.querySelector('.modal-options');
-      const optionTemplate = optionList.querySelector('button');
-      while (optionList.children.length < data.services.length) { const clone = optionTemplate.cloneNode(true); clone.dataset.bound = ''; optionList.append(clone); }
-      Array.from(optionList.children).forEach((button, index) => { button.hidden = index >= data.services.length; });
-      data.services.forEach((service, index) => {
-        const lengths = Object.fromEntries((service.lengths || []).sort((a, b) => a.display_order - b.display_order).map((length) => [length.name, Number(length.price)]));
+      if (serviceList) {
+        serviceList.replaceChildren();
+        data.services.forEach((service) => {
+          const lengths = Object.fromEntries((service.lengths || []).sort((a, b) => a.display_order - b.display_order).map((l) => [l.name, Number(l.price)]));
           catalogLengths[service.name] = lengths;
           catalogDetails[service.name] = { description: service.description, notes: service.notes, preparation_instructions: service.preparation_instructions };
           catalogServiceIds[service.name] = service.id;
-          catalogLengthIds[service.name] = Object.fromEntries((service.lengths || []).map((length) => [length.name, length.id]));
-        catalogOptions[service.name] = (service.options || []).filter((option) => option.is_active !== false);
-        const card = document.querySelectorAll('.service-card')[index];
-        if (card) {
-          card.querySelector('h3').textContent = service.name;
-          card.querySelector('.service-from').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'PRICING AVAILABLE SOON';
-          card.dataset.category = service.category?.slug || card.dataset.category;
+          catalogLengthIds[service.name] = Object.fromEntries((service.lengths || []).map((l) => [l.name, l.id]));
+          catalogOptions[service.name] = (service.options || []).filter((opt) => opt.is_active !== false);
+
+          const card = document.createElement('article');
+          card.className = 'service-card';
+          card.dataset.category = service.category?.slug || 'braids';
+
+          const imageDiv = document.createElement('div');
+          imageDiv.className = 'service-image';
+          imageDiv.setAttribute('role', 'img');
+          imageDiv.setAttribute('aria-label', `${service.name} hairstyle`);
           const serviceImage = service.image_url || service.image_path;
-          if (serviceImage) { const imagePath = /^https?:\/\//.test(serviceImage) ? serviceImage : `/${String(serviceImage).replace(/^\/+/, '')}`; catalogImages[service.name] = imagePath; applyBackgroundImage(card.querySelector('.service-image'), imagePath, catalogImageFallbacks[service.name]); }
-          card.querySelector('.service-image').setAttribute('aria-label', `${service.name} hairstyle`);
-          const book = card.querySelector('.service-book'); book.dataset.service = service.name;
-          if (book.dataset.bound !== 'true') { book.dataset.bound = 'true'; book.addEventListener('click', () => { openModal('service-card'); selected.service = book.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); }
-        }
-        const option = document.querySelectorAll('.modal-options button')[index];
-        if (option) { option.dataset.value = service.name; option.firstChild.textContent = `${service.name} `; option.querySelector('span').textContent = Object.values(lengths).length ? `FROM $${Math.min(...Object.values(lengths))}` : 'VIEW DETAILS'; if (option.dataset.bound !== 'true') { option.dataset.bound = 'true'; option.addEventListener('click', () => { selected.entryPoint = 'general'; selected.service = option.dataset.value; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); } }
-      });
+          if (serviceImage) {
+            const imagePath = /^https?:\/\//.test(serviceImage) ? serviceImage : `/${String(serviceImage).replace(/^\/+/, '')}`;
+            catalogImages[service.name] = imagePath;
+            applyBackgroundImage(imageDiv, imagePath, catalogImageFallbacks[service.name]);
+          }
+
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'service-info';
+          const title = document.createElement('h3');
+          title.textContent = service.name;
+          const priceP = document.createElement('p');
+          priceP.className = 'service-from';
+          const prices = Object.values(lengths);
+          priceP.textContent = prices.length ? `FROM $${Math.min(...prices)}` : 'PRICING AVAILABLE SOON';
+
+          const bookBtn = document.createElement('button');
+          bookBtn.className = 'service-book';
+          bookBtn.dataset.service = service.name;
+          bookBtn.dataset.bound = 'true';
+          bookBtn.innerHTML = 'BOOK NOW <span>↗</span>';
+          bookBtn.addEventListener('click', () => {
+            openModal('service-card');
+            selected.service = bookBtn.dataset.service;
+            selected.serviceId = catalogServiceIds[selected.service] || '';
+            syncLengthOptions();
+            showStep('length');
+          });
+
+          infoDiv.append(title, priceP, bookBtn);
+          card.append(imageDiv, infoDiv);
+          serviceList.append(card);
+        });
+      }
+
+      // Modal service options list
+      const optionList = document.querySelector('.modal-options');
+      if (optionList) {
+        optionList.replaceChildren();
+        data.services.forEach((service) => {
+          const lengths = Object.values(catalogLengths[service.name] || {});
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.value = service.name;
+          button.dataset.bound = 'true';
+          button.append(document.createTextNode(`${service.name} `), Object.assign(document.createElement('span'), { textContent: lengths.length ? `FROM $${Math.min(...lengths)}` : 'VIEW DETAILS' }));
+          button.addEventListener('click', () => {
+            selected.entryPoint = 'general';
+            selected.service = button.dataset.value;
+            selected.serviceId = catalogServiceIds[selected.service] || '';
+            syncLengthOptions();
+            showStep('length');
+          });
+          optionList.append(button);
+        });
+      }
     }
+
+    // 3. Category Filter Tabs
     if (Array.isArray(data.categories) && data.categories.length) {
-      const filterRow = document.querySelector('.filter-row'); filterRow.replaceChildren();
-      const all = document.createElement('button'); all.className = 'filter active'; all.dataset.filter = 'all'; all.setAttribute('role', 'tab'); all.setAttribute('aria-selected', 'true'); all.textContent = 'All'; filterRow.append(all);
-      data.categories.forEach((category) => { const button = document.createElement('button'); button.className = 'filter'; button.dataset.filter = category.slug; button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', 'false'); button.textContent = category.name; filterRow.append(button); });
-      filterRow.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => { filterRow.querySelectorAll('.filter').forEach((item) => { item.classList.remove('active'); item.setAttribute('aria-selected', String(item === button)); }); button.classList.add('active'); document.querySelectorAll('.service-card').forEach((card) => { card.style.display = button.dataset.filter === 'all' || card.dataset.category === button.dataset.filter ? '' : 'none'; }); }));
+      const filterRow = document.querySelector('.filter-row');
+      if (filterRow) {
+        filterRow.replaceChildren();
+        const all = document.createElement('button');
+        all.className = 'filter active';
+        all.dataset.filter = 'all';
+        all.setAttribute('role', 'tab');
+        all.setAttribute('aria-selected', 'true');
+        all.textContent = 'All';
+        filterRow.append(all);
+        data.categories.forEach((category) => {
+          const button = document.createElement('button');
+          button.className = 'filter';
+          button.dataset.filter = category.slug;
+          button.setAttribute('role', 'tab');
+          button.setAttribute('aria-selected', 'false');
+          button.textContent = category.name;
+          filterRow.append(button);
+        });
+        filterRow.querySelectorAll('.filter').forEach((button) => {
+          button.addEventListener('click', () => {
+            filterRow.querySelectorAll('.filter').forEach((item) => {
+              item.classList.remove('active');
+              item.setAttribute('aria-selected', String(item === button));
+            });
+            button.classList.add('active');
+            document.querySelectorAll('.service-card').forEach((card) => {
+              card.style.display = button.dataset.filter === 'all' || card.dataset.category === button.dataset.filter ? '' : 'none';
+            });
+          });
+        });
+      }
     }
-    const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
-    const homeSectionNodes = { hero: document.querySelector('.hero'), services: document.querySelector('#services'), gallery: document.querySelector('#gallery'), policies: document.querySelector('#policies'), contact: document.querySelector('#contact'), booking: document.querySelector('#booking') };
-    (data.sections || []).filter((section) => section.page_slug === 'home' && !/seo|meta|footer/i.test(String(section.section_key || '')) && !homeSectionNodes[section.section_key]).forEach((section) => {
-      const content = section.content || {}; const node = document.createElement('section'); node.className = 'section cms-section'; node.dataset.sectionKey = section.section_key;
-      const heading = document.createElement('div'); heading.className = 'section-heading';
-      if (content.eyebrow) { const eyebrow = document.createElement('p'); eyebrow.className = 'eyebrow'; eyebrow.textContent = content.eyebrow; heading.append(eyebrow); }
-      if (content.title || content.heading) { const title = document.createElement('h2'); title.textContent = content.title || content.heading; heading.append(title); }
-      if (heading.children.length) node.append(heading);
-      if (content.description || content.body) { const copy = document.createElement('p'); copy.textContent = content.description || content.body; node.append(copy); }
-      if (content.image || content.imageUrl) { const image = document.createElement('div'); image.className = 'cms-section-image'; image.setAttribute('role', 'img'); image.setAttribute('aria-label', content.altText || content.title || section.section_key); image.style.backgroundImage = `url("${String(content.image || content.imageUrl).replaceAll('"', '')}")`; node.append(image); }
-      if (content.primaryCta && content.primaryCtaLink) { const link = document.createElement('a'); link.className = 'pill pill-dark'; link.href = content.primaryCtaLink; link.textContent = content.primaryCta; node.append(link); }
-      homeSectionNodes[section.section_key] = node; document.querySelector('main').append(node);
-    });
-    (data.sectionVisibility || []).forEach((section) => { const node = homeSectionNodes[section.section_key]; if (node) node.hidden = section.is_visible === false; });
-    const mainContent = document.querySelector('main');
-    // Keep the Figma-designed core sequence in the DOM. CMS visibility still
-    // works, while stale display_order rows cannot move the hero below the page.
+
+    // 4. Section Headings & Text
+    const sections = Array.isArray(data.sections) ? data.sections : [];
+    const heroSection = sections.find((s) => s.section_key === 'hero');
     if (heroSection?.content) {
-      const heroTitle = heroSection.content.title || heroSection.content.headline;
-      const heroSubtitle = heroSection.content.subtitle || heroSection.content.tagline;
-      if (heroTitle) document.querySelector('.hero h1').textContent = heroTitle;
-      if (heroSubtitle) document.querySelector('.hero-copy>p').textContent = heroSubtitle;
-      if (heroSection.content.description) document.querySelector('.hero-copy>p').textContent = heroSection.content.description;
-      if (heroSection.content.primaryCta) document.querySelector('.hero-actions .pill').firstChild.textContent = `${heroSection.content.primaryCta} `;
-      if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
-      if (heroSection.content.primaryCtaLink) document.querySelector('.hero-actions .pill').href = heroSection.content.primaryCtaLink;
-      if (heroSection.content.secondaryCtaLink) document.querySelector('.hero-actions .text-link').href = heroSection.content.secondaryCtaLink;
-      // The hero image is a committed design asset. Do not let an old CMS URL
-      // replace it with an unavailable external image.
+      const hc = heroSection.content;
+      if (hc.eyebrow) {
+        const eyebrow = document.querySelector('.hero-mark');
+        if (eyebrow) eyebrow.textContent = hc.eyebrow;
+      }
+      if (hc.title) {
+        const h1 = document.querySelector('.hero h1');
+        if (h1) h1.innerHTML = renderFormattedHeading(hc.title);
+      }
+      if (hc.description || hc.subtitle) {
+        const p = document.querySelector('.hero-copy > p');
+        if (p) p.textContent = hc.description || hc.subtitle;
+      }
+      if (hc.primaryCtaText || hc.primaryCta) {
+        const pCta = document.querySelector('.hero-actions .pill');
+        if (pCta) pCta.textContent = hc.primaryCtaText || hc.primaryCta;
+      }
+      if (hc.secondaryCtaText || hc.secondaryCta) {
+        const sCta = document.querySelector('.hero-actions .text-link');
+        if (sCta) sCta.innerHTML = `${hc.secondaryCtaText || hc.secondaryCta} <span>↓</span>`;
+      }
+      if (hc.imageUrl || hc.image) {
+        const heroImg = document.querySelector('.hero-image');
+        if (heroImg) applyBackgroundImage(heroImg, hc.imageUrl || hc.image, './assets/web/hero.jpg');
+      }
     }
-    const servicesSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'services');
-    if (servicesSection?.content) { const heading = document.querySelector('#services .section-heading'); if (servicesSection.content.eyebrow) heading.querySelector('.eyebrow').textContent = servicesSection.content.eyebrow; if (servicesSection.content.title) heading.querySelector('h2').textContent = servicesSection.content.title; }
-    const bookingSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'booking');
-    if (bookingSection?.content) { const heading = document.querySelector('#booking'); if (bookingSection.content.eyebrow) heading.querySelector('.eyebrow').textContent = bookingSection.content.eyebrow; if (bookingSection.content.title) heading.querySelector('h2').textContent = bookingSection.content.title; }
-    const contactSection = (data.sections || []).find((section) => section.page_slug === 'contact' && section.section_key === 'contact');
-    if (contactSection?.content) { const note = document.querySelector('.contact-note'); if (contactSection.content.location) note.querySelector('p:first-child').textContent = contactSection.content.location; if (contactSection.content.email) note.querySelector('p:last-child').textContent = contactSection.content.email; }
-    const seoSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'seo');
+
+    const servicesSection = sections.find((s) => s.section_key === 'services');
+    if (servicesSection?.content) {
+      const heading = document.querySelector('#services .section-heading');
+      if (heading) {
+        if (servicesSection.content.eyebrow) heading.querySelector('.eyebrow').textContent = servicesSection.content.eyebrow;
+        if (servicesSection.content.title) heading.querySelector('h2').innerHTML = renderFormattedHeading(servicesSection.content.title);
+      }
+    }
+
+    const gallerySection = sections.find((s) => s.section_key === 'gallery');
+    if (gallerySection?.content) {
+      const heading = document.querySelector('#gallery .section-heading');
+      if (heading) {
+        if (gallerySection.content.eyebrow) heading.querySelector('.eyebrow').textContent = gallerySection.content.eyebrow;
+        if (gallerySection.content.title) heading.querySelector('h2').innerHTML = renderFormattedHeading(gallerySection.content.title);
+      }
+    }
+
+    const policiesSection = sections.find((s) => s.section_key === 'policies');
+    if (policiesSection?.content) {
+      const heading = document.querySelector('#policies .section-heading');
+      if (heading) {
+        if (policiesSection.content.eyebrow) heading.querySelector('.eyebrow').textContent = policiesSection.content.eyebrow;
+        if (policiesSection.content.title) heading.querySelector('h2').innerHTML = renderFormattedHeading(policiesSection.content.title);
+      }
+    }
+
+    const bookingSection = sections.find((s) => s.section_key === 'booking');
+    if (bookingSection?.content) {
+      const panel = document.querySelector('#booking');
+      if (panel) {
+        if (bookingSection.content.eyebrow) panel.querySelector('.eyebrow').textContent = bookingSection.content.eyebrow;
+        if (bookingSection.content.title) panel.querySelector('h2').innerHTML = renderFormattedHeading(bookingSection.content.title);
+        if (bookingSection.content.buttonText) panel.querySelector('button').innerHTML = `${bookingSection.content.buttonText} <span>↗</span>`;
+      }
+    }
+
+    const contactSection = sections.find((s) => s.section_key === 'contact');
+    if (contactSection?.content) {
+      const cc = contactSection.content;
+      const copy = document.querySelector('.contact-copy');
+      if (copy) {
+        if (cc.eyebrow) copy.querySelector('.eyebrow').textContent = cc.eyebrow;
+        if (cc.title) copy.querySelector('h2').innerHTML = renderFormattedHeading(cc.title);
+        if (cc.description) {
+          const descP = copy.querySelector('p:not(.eyebrow):not(.form-status)');
+          if (descP) descP.textContent = cc.description;
+        }
+      }
+      const note = document.querySelector('.contact-note');
+      if (note) {
+        if (cc.city) note.querySelector('p:first-child').textContent = cc.city;
+        if (cc.email) note.querySelector('p:last-child').textContent = cc.email;
+      }
+    }
+
+    const footerSection = sections.find((s) => s.section_key === 'footer');
+    if (footerSection?.content) {
+      const footer = document.querySelector('footer');
+      if (footer) {
+        if (footerSection.content.brandName) footer.querySelector('span:first-child').textContent = footerSection.content.brandName;
+        if (footerSection.content.copyrightText) footer.querySelector('span:last-child').textContent = footerSection.content.copyrightText;
+      }
+    }
+
+    // 5. Dynamic Gallery Grid
+    if (Array.isArray(data.gallery) && data.gallery.length) {
+      const galleryGrid = document.querySelector('.gallery-grid');
+      if (galleryGrid) {
+        galleryGrid.replaceChildren();
+        data.gallery.forEach((item, index) => {
+          const figure = document.createElement('figure');
+          let tileClass = 'gallery-tile';
+          if (index === 0) tileClass += ' gallery-tile-feature';
+          else if (index === 3) tileClass += ' gallery-tile-wide';
+          else if (index === 5) tileClass += ' gallery-tile-tall';
+          figure.className = tileClass;
+
+          const img = document.createElement('img');
+          const imageSrc = item.public_url || item.image_path;
+          img.src = /^https?:\/\//.test(imageSrc) ? imageSrc : `/${String(imageSrc).replace(/^\/+/, '')}`;
+          img.alt = item.alt_text || item.caption || 'Hair by Maeva hairstyle';
+          img.loading = 'lazy';
+          figure.append(img);
+          galleryGrid.append(figure);
+        });
+      }
+    }
+
+    // 6. Dynamic Social Links
+    if (Array.isArray(data.socials) && data.socials.length) {
+      const socialNode = document.querySelector('.contact-note p:nth-child(2)');
+      if (socialNode) {
+        socialNode.replaceChildren();
+        data.socials.forEach((social, index) => {
+          if (index) socialNode.append(' · ');
+          const link = document.createElement('a');
+          link.href = social.url;
+          link.target = '_blank';
+          link.rel = 'noreferrer';
+          link.textContent = social.label;
+          socialNode.append(link);
+        });
+      }
+    }
+
+    // 7. SEO Meta Tags
+    const seoSection = sections.find((s) => s.section_key === 'seo');
     if (seoSection?.content) {
       const title = seoSection.content.title || seoSection.content.pageTitle;
       const description = seoSection.content.description || seoSection.content.metaDescription;
@@ -377,21 +586,8 @@ async function loadPublicContent() {
       if (description) { document.querySelector('meta[name="description"]')?.setAttribute('content', description); document.querySelector('meta[property="og:description"]')?.setAttribute('content', description); }
       if (image) document.querySelector('meta[property="og:image"]')?.setAttribute('content', image);
     }
-    if (Array.isArray(data.gallery) && data.gallery.length) {
-      document.querySelectorAll('.gallery-grid .gallery-tile').forEach((tile, index) => {
-        const item = data.gallery[index]; if (!item || !/^https:\/\//.test(item.public_url)) return;
-        tile.style.backgroundImage = `url("${item.public_url.replaceAll('"', '')}")`;
-        tile.setAttribute('role', 'img'); tile.setAttribute('aria-label', item.alt_text || item.caption || 'Hair by Maeva hairstyle');
-      });
-    }
-    if (Array.isArray(data.socials) && data.socials.length) {
-      const socialNode = document.querySelector('.contact-note p:nth-child(2)');
-      socialNode.replaceChildren();
-      data.socials.forEach((social, index) => {
-        if (index) socialNode.append(' · ');
-        const link = document.createElement('a'); link.href = social.url; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = social.label; socialNode.append(link);
-      });
-    }
-  } catch { /* static Figma copy remains available when the API is offline */ }
+  } catch (error) {
+    console.warn('Using offline fallback content:', error);
+  }
 }
 loadPublicContent();

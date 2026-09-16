@@ -26,9 +26,18 @@ module.exports = async function handler(req, res) {
     if (!userResponse.ok) return json(res, 401, { error: 'Your session is no longer valid. Sign in again.' });
     const user = await userResponse.json();
     const existing = await supabase('admin_users?select=user_id&limit=1');
-    const configuredEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-    if (existing.length && configuredEmail && String(user.email || '').toLowerCase() !== configuredEmail) return json(res, 403, { error: 'Administrator access is not enabled for this account.' });
-    await supabase('admin_users', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify({ user_id: user.id, display_name: 'Maeva' }) });
+    const allowedEmails = [
+      String(process.env.ADMIN_EMAIL || '').trim().toLowerCase(),
+      String(process.env.ADMIN_ROUTING_EMAIL || '').trim().toLowerCase(),
+      'maevausa@outlook.com',
+      'idrissangelot99@gmail.com'
+    ].filter(Boolean);
+    const userEmail = String(user.email || '').toLowerCase();
+    const isExistingAdmin = (await supabase(`admin_users?user_id=eq.${encodeURIComponent(user.id)}&select=user_id`)).length > 0;
+    if (!isExistingAdmin && allowedEmails.length && !allowedEmails.includes(userEmail)) {
+      return json(res, 403, { error: 'Administrator access is not enabled for this account.' });
+    }
+    await supabase('admin_users', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify({ user_id: user.id, display_name: user.user_metadata?.display_name || 'Admin' }) });
     return json(res, 200, { ok: true });
   } catch (error) { console.error(error); return json(res, error.statusCode || 500, { error: 'Unable to enable administrator access.' }); }
 };
