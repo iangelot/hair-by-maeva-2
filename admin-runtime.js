@@ -70,6 +70,61 @@
     return builder;
   }
 
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function compressImageIfNeeded(file, maxDimension = 1600, quality = 0.85) {
+    if (!file || !file.type || !file.type.startsWith('image/') || file.size < 300 * 1024) {
+      return file;
+    }
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], (file.name || 'photo').replace(/\.[^.]+$/, '.jpg'), {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = url;
+    });
+  }
+
   // Supabase Client Object
   const client = {
     from: createQuery,
@@ -117,19 +172,47 @@
             return { data: { publicUrl: `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path.replace(/^\/+/, '')}` } };
           },
           async upload(path, file, options = {}) {
-            const token = localStorage.getItem(TOKEN_KEY);
-            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
-              method: 'POST',
-              headers: {
-                apikey: SUPABASE_KEY,
-                Authorization: `Bearer ${token || SUPABASE_KEY}`,
-                'Content-Type': options.contentType || file.type || 'application/octet-stream',
-                'x-upsert': String(Boolean(options.upsert))
-              },
-              body: file
-            });
-            const data = await res.json().catch(() => ({}));
-            return res.ok ? { data: { path }, error: null } : { data: null, error: new Error(data.message || data.error || 'Image upload failed.') };
+            try {
+              const processedFile = await compressImageIfNeeded(file);
+              const base64Data = await fileToBase64(processedFile);
+              const folder = path.split('/')[0] || 'services';
+              const filename = path.split('/').slice(1).join('/') || processedFile.name || 'image.jpg';
+
+              const res = await fetch('/api/admin-upload', {
+                method: 'POST',
+                headers: {
+                  Authorization: getAuthHeaders().Authorization,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  folder,
+                  filename,
+                  contentType: processedFile.type || 'image/jpeg',
+                  base64Data
+                })
+              });
+
+              const result = await res.json().catch(() => ({}));
+              if (res.ok && result.path) {
+                return { data: { path: result.path, publicUrl: result.publicUrl }, error: null };
+              }
+              throw new Error(result.error || 'Upload endpoint returned an error.');
+            } catch (err) {
+              console.warn('Backend upload proxy failed, attempting direct Supabase upload:', err.message);
+              const token = localStorage.getItem(TOKEN_KEY);
+              const directRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
+                method: 'POST',
+                headers: {
+                  apikey: SUPABASE_KEY,
+                  Authorization: `Bearer ${token || SUPABASE_KEY}`,
+                  'Content-Type': options.contentType || file.type || 'application/octet-stream',
+                  'x-upsert': String(Boolean(options.upsert))
+                },
+                body: file
+              });
+              const directData = await directRes.json().catch(() => ({}));
+              return directRes.ok ? { data: { path }, error: null } : { data: null, error: new Error(directData.message || directData.error || err.message || 'Image upload failed.') };
+            }
           },
           async remove(paths) {
             const token = localStorage.getItem(TOKEN_KEY);
