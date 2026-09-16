@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
     // A booking becomes actionable only after the client submits payment. Keeping
     // this step silent prevents duplicate and premature admin notifications.
-    const accessUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
+    const accessUrl = `${env('PUBLIC_SITE_URL')}/booking?token=${encodeURIComponent(token)}`;
     return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl, totalPrice: total, reservationFee, remainingBalance: Math.max(0, total - reservationFee), emailSent: false, adminEmailSent: false });
   } catch (error) {
     console.error(error);

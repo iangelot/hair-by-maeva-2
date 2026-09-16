@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
     if (action === 'cancel') {
       await supabase(`bookings?id=eq.${encodeURIComponent(booking.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() }) });
       const customer = (await supabase(`customers?id=eq.${encodeURIComponent(booking.customer_id)}&select=full_name,email`))[0];
-      if (customer?.email) { const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`; await trySendTemplatedEmail({ templateKey: 'cancellation', to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number} cancelled`, html: `<p>Hi ${escapeHtml(customer.full_name)},</p><p>Your booking <strong>${escapeHtml(booking.booking_number)}</strong> has been cancelled as requested.</p><p><a href="${manageUrl}">View / manage my booking</a></p>`, variables: { booking_number: booking.booking_number, customer_name: customer.full_name, payment_status: booking.payment_status, manage_url: manageUrl } }); }
+      if (customer?.email) { const manageUrl = `${env('PUBLIC_SITE_URL')}/booking?token=${encodeURIComponent(token)}`; await trySendTemplatedEmail({ templateKey: 'cancellation', to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number} cancelled`, html: `<p>Hi ${escapeHtml(customer.full_name)},</p><p>Your booking <strong>${escapeHtml(booking.booking_number)}</strong> has been cancelled as requested.</p><p><a href="${manageUrl}">View / manage my booking</a></p>`, variables: { booking_number: booking.booking_number, customer_name: customer.full_name, payment_status: booking.payment_status, manage_url: manageUrl } }); }
       if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer?.email, subject: `Booking cancelled — ${booking.booking_number}`, html: `<p>Booking ${escapeHtml(booking.booking_number)} was cancelled by the customer.</p>` });
       return json(res, 200, { ok: true, status: 'cancelled' });
     }
@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
     await supabase(`bookings?id=eq.${encodeURIComponent(booking.id)}`, { method: 'PATCH', body: JSON.stringify({ appointment_date: date, appointment_time: time, status: 'rescheduled', updated_at: new Date().toISOString() }) });
     const customer = (await supabase(`customers?id=eq.${encodeURIComponent(booking.customer_id)}&select=full_name,email`))[0];
     if (customer?.email) {
-      const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
+      const manageUrl = `${env('PUBLIC_SITE_URL')}/booking?token=${encodeURIComponent(token)}`;
       const html = `<p>Hi ${escapeHtml(customer.full_name)},</p><p>Your booking <strong>${escapeHtml(booking.booking_number)}</strong> has been moved to ${escapeHtml(date)} at ${escapeHtml(time)}.</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
       await trySendTemplatedEmail({ templateKey: 'rescheduling', to: customer.email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number} rescheduled`, html, variables: { booking_number: booking.booking_number, customer_name: customer.full_name, date, time, manage_url: manageUrl } });
       if (process.env.ADMIN_EMAIL) await trySendEmail({ to: adminRecipients(), replyTo: customer.email, subject: `Booking rescheduled — ${booking.booking_number}`, html });
