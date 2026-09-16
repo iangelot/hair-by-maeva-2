@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
         return json(res, 400, { error: 'File size exceeds 15MB limit.' });
       }
 
-      const uploadPath = `${folder}/${Date.now()}-${filename}`;
+      const uploadPath = folder ? `${folder}/${filename}` : filename;
       const storageUrl = `${env('SUPABASE_URL')}/storage/v1/object/hair-media/${uploadPath}`;
 
       const uploadRes = await fetch(storageUrl, {
