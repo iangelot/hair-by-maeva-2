@@ -611,38 +611,67 @@
   function renderCategories(categories) {
     const select = document.getElementById('new-service-category');
     if (select) {
-      select.innerHTML = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      select.innerHTML = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') || '<option value="">No categories created</option>';
     }
 
     const catList = document.getElementById('category-list');
     if (catList) {
-      catList.innerHTML = categories.map(c => `
-        <form class="category-edit-form" data-id="${c.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <input name="name" value="${escapeHtml(c.name)}" style="flex:2; padding:6px 10px; border:1px solid var(--admin-border); border-radius:4px;">
-          <input name="display_order" type="number" value="${Number(c.display_order || 0)}" style="width:60px; padding:6px; border:1px solid var(--admin-border); border-radius:4px;">
-          <label class="check-label" style="font-size:11px;"><input type="checkbox" name="is_active" ${c.is_active !== false ? 'checked' : ''}> Active</label>
-          <button type="submit" class="cms-btn cms-btn-outline" style="padding:6px 10px; font-size:10px;">SAVE</button>
-          <button type="button" class="cms-btn cms-btn-danger btn-delete-cat" data-id="${c.id}" style="padding:6px 10px; font-size:10px;">DEL</button>
-        </form>
-      `).join('') || '<p style="color:#765e58;">No categories.</p>';
+      if (!categories.length) {
+        catList.innerHTML = '<p style="color:#765e58;">No categories yet. Add one above.</p>';
+        return;
+      }
+      catList.innerHTML = `
+        <div class="cms-grid-2">
+          ${categories.map(c => {
+            const count = (cachedServices || []).filter(s => s.category_id === c.id).length;
+            return `
+              <form class="category-edit-form" data-id="${c.id}" style="display:flex; align-items:center; gap:8px; background:#fff; padding:10px 12px; border:1px solid var(--admin-border); border-radius:4px;">
+                <div style="flex:2;">
+                  <input name="name" value="${escapeHtml(c.name)}" placeholder="Category name" required style="width:100%; padding:6px 8px; font-size:13px; font-weight:600; border:1px solid var(--admin-border); border-radius:4px;">
+                  <span style="font-size:10px; color:#765e58; font-family:var(--mono);">${count} hairstyle${count === 1 ? '' : 's'} linked</span>
+                </div>
+                <div style="width:65px;">
+                  <input name="display_order" type="number" value="${Number(c.display_order || 0)}" title="Display order" style="width:100%; padding:6px; font-size:12px; border:1px solid var(--admin-border); border-radius:4px;">
+                </div>
+                <label class="check-label" style="font-size:11px; margin:0;" title="Visible on website tab bar">
+                  <input type="checkbox" name="is_active" ${c.is_active !== false ? 'checked' : ''}> Active
+                </label>
+                <button type="submit" class="cms-btn cms-btn-outline" style="padding:6px 8px; font-size:11px;">SAVE</button>
+                <button type="button" class="cms-btn cms-btn-danger btn-delete-cat" data-id="${c.id}" style="padding:6px 8px; font-size:11px;">DEL</button>
+              </form>
+            `;
+          }).join('')}
+        </div>
+      `;
 
       catList.querySelectorAll('.category-edit-form').forEach(f => {
         f.addEventListener('submit', async (e) => {
           e.preventDefault();
+          showToast('Updating category…');
           const fd = new FormData(f);
+          const name = fd.get('name')?.toString().trim();
+          const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
           const { error } = await client.from('service_categories').update({
-            name: fd.get('name'),
+            name,
+            slug,
             display_order: Number(fd.get('display_order')),
             is_active: Boolean(fd.get('is_active'))
           }).eq('id', f.dataset.id);
           if (error) showToast(error.message, true);
-          else { showToast('Category updated.'); loadDashboard(); }
+          else { showToast(`Category "${name}" updated.`); loadDashboard(); }
         });
       });
 
       catList.querySelectorAll('.btn-delete-cat').forEach(b => {
         b.addEventListener('click', async () => {
-          if (!confirm('Delete this category?')) return;
+          const cat = categories.find(c => c.id === b.dataset.id);
+          const count = (cachedServices || []).filter(s => s.category_id === b.dataset.id).length;
+          const msg = count > 0 
+            ? `Delete category "${cat?.name || ''}"? The ${count} linked hairstyle(s) will stay in your catalog but become uncategorized.`
+            : `Delete category "${cat?.name || ''}"?`;
+          if (!confirm(msg)) return;
+          showToast('Deleting category…');
+          await client.from('services').update({ category_id: null }).eq('category_id', b.dataset.id);
           const { error } = await client.from('service_categories').delete().eq('id', b.dataset.id);
           if (error) showToast(error.message, true);
           else { showToast('Category deleted.'); loadDashboard(); }
@@ -652,11 +681,6 @@
   }
 
   function renderServices(services, categories) {
-    const lengthServiceSelect = document.getElementById('new-length-service');
-    if (lengthServiceSelect) {
-      lengthServiceSelect.innerHTML = services.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
-    }
-
     const manualServiceSelect = document.getElementById('manual-booking-service');
     const manualLengthSelect = document.getElementById('manual-booking-length');
     if (manualServiceSelect && manualLengthSelect) {
@@ -693,9 +717,13 @@
               </div>
               <div class="form-group">
                 <label>CATEGORY</label>
-                <select name="category_id">
-                  ${categories.map(c => `<option value="${c.id}" ${c.id === s.category_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
-                </select>
+                <div style="display:flex; gap:6px;">
+                  <select name="category_id" style="flex:1;">
+                    <option value="">-- No Category --</option>
+                    ${categories.map(c => `<option value="${c.id}" ${c.id === s.category_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+                  </select>
+                  <button type="button" class="cms-btn cms-btn-outline btn-quick-cat" style="padding:6px 10px; font-size:11px; white-space:nowrap;">＋ NEW</button>
+                </div>
               </div>
             </div>
             <div class="cms-grid-2">
@@ -732,16 +760,25 @@
 
             <!-- Lengths & Options -->
             <div style="border-top:1px solid var(--admin-border); margin:16px 0; padding-top:14px;">
-              <p class="eyebrow" style="margin-top:0;">LENGTHS / PRICING OPTIONS</p>
-              <div class="cms-grid-2">
+              <p class="eyebrow" style="margin-top:0;">LENGTHS / PRICING OPTIONS (${(s.service_lengths || []).length})</p>
+              <div class="cms-grid-2" style="margin-bottom:12px;">
                 ${(s.service_lengths || []).map(l => `
-                  <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                  <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; background:#fff; padding:6px 8px; border:1px solid var(--admin-border); border-radius:4px;">
                     <input required name="length-name-${l.id}" value="${escapeHtml(l.name)}" placeholder="Length label" style="flex:2; padding:6px 8px; font-size:13px;">
-                    <span style="font-size:12px;">$</span>
+                    <span style="font-size:12px; font-weight:bold;">$</span>
                     <input required type="number" min="0" step="1" name="length-price-${l.id}" value="${Number(l.price)}" style="width:70px; padding:6px 8px; font-size:13px;">
-                    <button type="button" class="cms-btn cms-btn-danger btn-del-length" data-id="${l.id}" style="padding:6px 8px; font-size:10px;">✕</button>
+                    <button type="button" class="cms-btn cms-btn-danger btn-del-length" data-id="${l.id}" title="Delete length" style="padding:6px 8px; font-size:10px;">✕</button>
                   </div>
-                `).join('') || '<p style="font-size:12px; color:#765e58;">No lengths configured.</p>'}
+                `).join('') || '<p style="font-size:12px; color:#765e58;">No lengths configured yet.</p>'}
+              </div>
+
+              <!-- Inline Add Length Option for this hairstyle -->
+              <div style="background:#faf8f5; border:1px dashed var(--admin-border); border-radius:4px; padding:10px 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <span style="font-size:11px; font-family:var(--mono); color:#765e58; font-weight:bold;">＋ ADD LENGTH / PRICE:</span>
+                <input placeholder="Option name (e.g. Waist, 30 in, Small)" class="inline-new-length-name" data-service-id="${s.id}" style="flex:2; min-width:140px; padding:6px 8px; font-size:12px;">
+                <span style="font-size:12px;">$</span>
+                <input type="number" min="0" step="1" placeholder="250" class="inline-new-length-price" data-service-id="${s.id}" style="width:70px; padding:6px 8px; font-size:12px;">
+                <button type="button" class="cms-btn cms-btn-primary btn-add-length-inline" data-service-id="${s.id}" style="padding:6px 12px; font-size:11px; white-space:nowrap;">ADD LENGTH</button>
               </div>
             </div>
 
@@ -810,16 +847,66 @@
         await Promise.all(lengthUpdates);
 
         showToast('Hairstyle updated successfully!');
-        loadDashboard();
+        await loadDashboard();
+        const card = document.querySelector(`.service-edit-form[data-id="${serviceId}"]`)?.closest('details');
+        if (card) card.open = true;
+      });
+    });
+
+    // Inline Add Length Button handler
+    list.querySelectorAll('.btn-add-length-inline').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const serviceId = btn.dataset.serviceId;
+        const nameInput = list.querySelector(`.inline-new-length-name[data-service-id="${serviceId}"]`);
+        const priceInput = list.querySelector(`.inline-new-length-price[data-service-id="${serviceId}"]`);
+        const name = nameInput?.value?.trim();
+        const price = Number(priceInput?.value);
+        if (!name) {
+          showToast('Please enter a length or option name.', true);
+          nameInput?.focus();
+          return;
+        }
+        if (isNaN(price) || price < 0) {
+          showToast('Please enter a valid price.', true);
+          priceInput?.focus();
+          return;
+        }
+        showToast('Adding length option…');
+        const { data: existing } = await client.from('service_lengths').select('display_order').eq('service_id', serviceId).order('display_order', { ascending: false }).limit(1);
+        const nextOrder = Number(existing?.[0]?.display_order || 0) + 1;
+        const { error } = await client.from('service_lengths').insert({
+          service_id: serviceId,
+          name,
+          price,
+          display_order: nextOrder
+        });
+        if (error) {
+          showToast(error.message, true);
+        } else {
+          showToast(`Added length "${name} — $${price}"!`);
+          await loadDashboard();
+          const card = document.querySelector(`.service-edit-form[data-id="${serviceId}"]`)?.closest('details');
+          if (card) card.open = true;
+        }
       });
     });
 
     list.querySelectorAll('.btn-del-length').forEach(b => {
-      b.addEventListener('click', async () => {
+      b.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const serviceId = b.closest('.service-edit-form')?.dataset.id;
         if (!confirm('Remove this length/price option?')) return;
         const { error } = await client.from('service_lengths').delete().eq('id', b.dataset.id);
         if (error) showToast(error.message, true);
-        else { showToast('Length removed.'); loadDashboard(); }
+        else {
+          showToast('Length removed.');
+          await loadDashboard();
+          if (serviceId) {
+            const card = document.querySelector(`.service-edit-form[data-id="${serviceId}"]`)?.closest('details');
+            if (card) card.open = true;
+          }
+        }
       });
     });
 
@@ -1591,46 +1678,52 @@
       newCategoryForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(newCategoryForm);
-        const name = fd.get('name');
-        const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
-        const { error } = await client.from('service_categories').insert({ name, slug, display_order: 99 });
+        const name = fd.get('name')?.toString().trim();
+        if (!name) return;
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        showToast('Adding category…');
+        const { error } = await client.from('service_categories').insert({
+          name,
+          slug,
+          display_order: 99,
+          is_active: true
+        });
         if (error) showToast(error.message, true);
         else {
-          showToast('Category added.');
+          showToast(`Category "${name}" added!`);
           newCategoryForm.reset();
           loadDashboard();
         }
       });
     }
 
-    // 7. Add Length Option Form
-    const newLengthForm = document.getElementById('new-length-form');
-    if (newLengthForm) {
-      newLengthForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const fd = new FormData(newLengthForm);
-        const service_id = fd.get('service_id');
-        const name = fd.get('name');
-        const price = Number(fd.get('price'));
-
-        const { data: existing } = await client.from('service_lengths').select('display_order').eq('service_id', service_id).order('display_order', { ascending: false }).limit(1);
-        const nextOrder = Number(existing?.[0]?.display_order || 0) + 1;
-
-        const { error } = await client.from('service_lengths').insert({
-          service_id,
-          name,
-          price,
-          display_order: nextOrder
-        });
-
-        if (error) showToast(error.message, true);
-        else {
-          showToast('Length option added.');
-          newLengthForm.reset();
-          loadDashboard();
+    // 7. Global delegation for Quick Add Category buttons
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-quick-cat');
+      if (!btn) return;
+      e.preventDefault();
+      const catName = prompt('Enter new category name (e.g. Ponytails, Locs, Weaves):');
+      if (!catName || !catName.trim()) return;
+      const name = catName.trim();
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      showToast('Creating category…');
+      const { data, error } = await client.from('service_categories').insert({
+        name,
+        slug,
+        display_order: 99,
+        is_active: true
+      }).select('id, name').single();
+      if (error) {
+        showToast(error.message, true);
+      } else {
+        showToast(`Category "${name}" created!`);
+        await loadDashboard();
+        const select = btn.previousElementSibling;
+        if (select && select.tagName === 'SELECT' && data?.id) {
+          select.value = data.id;
         }
-      });
-    }
+      }
+    });
 
     // 8. New Gallery Form
     const newGalleryForm = document.getElementById('new-gallery-form');

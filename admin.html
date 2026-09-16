@@ -175,16 +175,41 @@
 
       <!-- TAB 2: Hairstyles & Pricing -->
       <div id="tab-services" class="tab-pane">
+        <!-- Categories Manager Card -->
+        <section class="cms-card" style="margin-bottom: 20px;">
+          <div class="cms-card-head">
+            <div>
+              <h2>Categories Manager</h2>
+              <p class="form-help">Create, rename, reorder, or delete hairstyle categories (e.g. Braids, Twists, Locs, Ponytails, Weaves).</p>
+            </div>
+          </div>
+          <form id="new-category-form" style="display: flex; gap: 8px; margin-bottom: 16px; max-width: 500px;">
+            <input required name="name" placeholder="New category name (e.g. Ponytails)" style="flex: 1; padding: 8px 12px; border: 1px solid var(--admin-border); border-radius: 4px;">
+            <button class="cms-btn cms-btn-primary" type="submit">＋ ADD CATEGORY</button>
+          </form>
+          <div id="category-list">Loading categories…</div>
+        </section>
+
+        <!-- Hairstyles Catalog Card -->
         <section class="cms-card">
           <div class="cms-card-head">
-            <h2>Hairstyles Catalog</h2>
-            <button class="cms-btn cms-btn-outline" id="add-service-toggle" type="button">ADD HAIRSTYLE ＋</button>
+            <div>
+              <h2>Hairstyles Catalog</h2>
+              <p class="form-help">Manage hairstyles, photo previews, durations, and add custom length/pricing tiers.</p>
+            </div>
+            <button class="cms-btn cms-btn-primary" id="add-service-toggle" type="button">＋ NEW HAIRSTYLE</button>
           </div>
           <form id="new-service-form" class="hidden" style="padding: 18px; border: 1px solid var(--admin-border); border-radius: 6px; margin-bottom: 24px; background: #faf8f5;">
             <p class="eyebrow" style="margin-top: 0;">ADD NEW HAIRSTYLE</p>
             <div class="cms-grid-2">
               <div class="form-group"><label>STYLE NAME</label><input required name="name" placeholder="e.g. Knotless Braids"></div>
-              <div class="form-group"><label>CATEGORY</label><select required name="category_id" id="new-service-category"></select></div>
+              <div class="form-group">
+                <label>CATEGORY</label>
+                <div style="display: flex; gap: 6px;">
+                  <select required name="category_id" id="new-service-category" style="flex: 1;"></select>
+                  <button type="button" class="cms-btn cms-btn-outline btn-quick-cat" style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">＋ NEW</button>
+                </div>
+              </div>
             </div>
             <div class="cms-grid-3">
               <div class="form-group"><label>STARTING PRICE ($)</label><input required type="number" min="0" step="1" name="price" placeholder="200"></div>
@@ -205,31 +230,6 @@
           </form>
           <div id="service-list" class="admin-list">Loading services…</div>
         </section>
-
-        <!-- Categories & Options -->
-        <div class="cms-grid-2">
-          <section class="cms-card">
-            <div class="cms-card-head"><h2>Categories</h2></div>
-            <form id="new-category-form" style="display: flex; gap: 8px; margin-bottom: 16px;">
-              <input required name="name" placeholder="Category name" style="flex: 1; padding: 8px 12px; border: 1px solid var(--admin-border); border-radius: 4px;">
-              <button class="cms-btn cms-btn-primary" type="submit">ADD</button>
-            </form>
-            <div id="category-list">Loading…</div>
-          </section>
-
-          <section class="cms-card">
-            <div class="cms-card-head"><h2>Add Length / Option</h2></div>
-            <form id="new-length-form">
-              <div class="form-group"><label>SERVICE</label><select required name="service_id" id="new-length-service"></select></div>
-              <div class="cms-grid-2">
-                <div class="form-group"><label>OPTION / LENGTH NAME</label><input required name="name" placeholder="e.g. Waist Length"></div>
-                <div class="form-group"><label>PRICE ($)</label><input required type="number" min="0" step="1" name="price" placeholder="250"></div>
-              </div>
-              <button class="cms-btn cms-btn-primary" type="submit">ADD LENGTH OPTION</button>
-              <p class="form-status" id="length-status"></p>
-            </form>
-          </section>
-        </div>
       </div>
 
       <!-- TAB 3: Website Text & Sections -->
