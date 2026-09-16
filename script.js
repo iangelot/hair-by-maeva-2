@@ -15,6 +15,8 @@ document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('clic
 
 const modal = document.querySelector('#booking-modal');
 const selected = { service: '', serviceId: '', length: '', lengthId: '', details: {} };
+const bookingStepNumbers = { service: '01 / 07', length: '02 / 07', date: '03 / 07', time: '04 / 07', details: '05 / 07', review: '06 / 07' };
+Object.entries(bookingStepNumbers).forEach(([step, label]) => { const eyebrow = document.querySelector(`.modal-step[data-step="${step}"] .eyebrow`); if (eyebrow) eyebrow.textContent = label; });
 const catalogOptions = {};
 const catalogDetails = {};
 const catalogServiceIds = {};
