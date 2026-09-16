@@ -273,7 +273,7 @@ async function loadPublicContent() {
     }
     const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
     const homeSectionNodes = { hero: document.querySelector('.hero'), services: document.querySelector('#services'), gallery: document.querySelector('#gallery'), policies: document.querySelector('#policies'), contact: document.querySelector('#contact'), booking: document.querySelector('#booking') };
-    (data.sections || []).filter((section) => section.page_slug === 'home' && section.section_key !== 'seo' && !homeSectionNodes[section.section_key]).forEach((section) => {
+    (data.sections || []).filter((section) => section.page_slug === 'home' && !/seo|meta|footer/i.test(String(section.section_key || '')) && !homeSectionNodes[section.section_key]).forEach((section) => {
       const content = section.content || {}; const node = document.createElement('section'); node.className = 'section cms-section'; node.dataset.sectionKey = section.section_key;
       const heading = document.createElement('div'); heading.className = 'section-heading';
       if (content.eyebrow) { const eyebrow = document.createElement('p'); eyebrow.className = 'eyebrow'; eyebrow.textContent = content.eyebrow; heading.append(eyebrow); }
