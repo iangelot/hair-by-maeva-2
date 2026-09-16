@@ -301,14 +301,17 @@
 
     tbody.innerHTML = rows.map(b => {
       const isPendingVerification = b.payment_status === 'payment_submitted';
-      const statusPillClass = b.payment_status === 'payment_verified' || b.status === 'confirmed' ? 'status-payment_verified' : (isPendingVerification ? 'status-payment_submitted' : '');
+      const isConfirmed = b.status === 'confirmed' || b.payment_status === 'payment_verified';
+      const isCompleted = b.status === 'completed';
+      const isCancelled = b.status === 'cancelled';
+      const statusPillClass = isConfirmed ? 'status-payment_verified' : (isPendingVerification ? 'status-payment_submitted' : '');
 
       return `
-        <tr class="booking-row booking-row-${escapeHtml(b.payment_status)}" data-id="${b.id}">
+        <tr class="booking-row booking-row-${escapeHtml(b.payment_status)} booking-row-${escapeHtml(b.status)}" data-id="${b.id}">
           <td>
             <strong>${escapeHtml(b.booking_number)}</strong>
             <small style="color:#765e58;">${escapeHtml(b.service_name_snapshot)} · ${escapeHtml(b.length_name_snapshot)}</small>
-            <small style="color:#765e58;">Total: $${Number(b.total_price || 0).toFixed(2)} (Dep: $${Number(b.reservation_fee || 0).toFixed(2)})</small>
+            <small style="color:#765e58;">Total: $${Number(b.total_price || 0).toFixed(2)} (Deposit: $${Number(b.reservation_fee || 0).toFixed(2)})</small>
           </td>
           <td>
             <strong>${escapeHtml(b.customers?.full_name || 'Client')}</strong>
@@ -325,22 +328,39 @@
           <td>
             <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
               ${isPendingVerification ? `
-                <button type="button" class="cms-btn cms-btn-primary btn-confirm-payment" data-id="${b.id}" style="padding:4px 10px; font-size:10px;">CONFIRM PAYMENT</button>
-                <button type="button" class="cms-btn cms-btn-danger btn-reject-payment" data-id="${b.id}" style="padding:4px 10px; font-size:10px;">NOT RECEIVED</button>
+                <div style="display:flex; gap:4px; margin-bottom:2px;">
+                  <button type="button" class="cms-btn cms-btn-primary btn-confirm-payment" data-id="${b.id}" style="padding:4px 8px; font-size:10px;">CONFIRM PAYMENT</button>
+                  <button type="button" class="cms-btn cms-btn-danger btn-reject-payment" data-id="${b.id}" style="padding:4px 8px; font-size:10px;">NOT RECEIVED</button>
+                </div>
               ` : `
-                <span style="font-family:var(--mono); font-size:11px; text-transform:uppercase; color:#2d7a38;">${escapeHtml(b.status.replace(/_/g, ' '))}</span>
+                <span style="font-family:var(--mono); font-size:11px; text-transform:uppercase; color:${isConfirmed ? '#2d7a38' : (isCompleted ? '#4a6fa5' : (isCancelled ? '#a23939' : '#583636'))}; font-weight:600;">
+                  ${escapeHtml(b.status.replace(/_/g, ' '))}
+                </span>
               `}
-              <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
-                <button type="button" class="text-link btn-details" data-id="${b.id}" style="font-size:10px;">DETAILS</button>
+              <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="text-link btn-details" data-id="${b.id}" style="font-size:10px;">DETAILS ▾</button>
                 <button type="button" class="text-link btn-note" data-id="${b.id}" data-note="${escapeHtml(b.admin_notes || '')}" style="font-size:10px;">${b.admin_notes ? 'EDIT NOTE' : 'ADD NOTE'}</button>
-                ${b.status !== 'cancelled' ? `
+                ${!isCancelled && !isCompleted ? `
                   <button type="button" class="text-link btn-reschedule" data-id="${b.id}" style="font-size:10px;">RESCHEDULE</button>
+                  <button type="button" class="text-link btn-complete-booking" data-id="${b.id}" style="font-size:10px; color:#2d7a38;">COMPLETE ✓</button>
                   <button type="button" class="text-link danger btn-cancel-booking" data-id="${b.id}" style="font-size:10px; color:#a23939;">CANCEL</button>
                 ` : ''}
+                ${isConfirmed ? `
+                  <button type="button" class="text-link btn-resend-email" data-id="${b.id}" style="font-size:10px; color:#583636;">RESEND EMAIL ✉</button>
+                ` : ''}
+                <button type="button" class="text-link danger btn-delete-booking" data-id="${b.id}" style="font-size:10px; color:#a23939; font-weight:600;">DELETE ✕</button>
               </div>
-              <div class="booking-detail-box hidden" id="details-${b.id}" style="margin-top:6px; padding:8px; background:#fff; border:1px solid rgba(88,54,54,0.15); border-radius:4px; font-size:11px;">
-                <strong>Balance Due:</strong> $${Number(b.remaining_balance || 0).toFixed(2)}<br>
-                ${b.admin_notes ? `<strong>Internal Note:</strong> ${escapeHtml(b.admin_notes)}` : '<em>No internal note.</em>'}
+              <div class="booking-detail-box hidden" id="details-${b.id}" style="margin-top:6px; padding:10px; background:#fff; border:1px solid rgba(88,54,54,0.15); border-radius:4px; font-size:11px; width:100%; box-sizing:border-box;">
+                <strong>Booking #:</strong> ${escapeHtml(b.booking_number)}<br>
+                <strong>Service:</strong> ${escapeHtml(b.service_name_snapshot)} (${escapeHtml(b.length_name_snapshot)})<br>
+                <strong>Total Price:</strong> $${Number(b.total_price || 0).toFixed(2)}<br>
+                <strong>Deposit:</strong> $${Number(b.reservation_fee || 0).toFixed(2)}<br>
+                <strong>Remaining Balance Due:</strong> $${Number(b.remaining_balance || 0).toFixed(2)}<br>
+                ${b.admin_notes ? `<strong>Internal Note:</strong> ${escapeHtml(b.admin_notes)}<br>` : ''}
+                <div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(88,54,54,0.1); display:flex; gap:6px;">
+                  <button type="button" class="cms-btn cms-btn-outline btn-quick-confirm" data-id="${b.id}" style="padding:3px 6px; font-size:9px;">FORCE CONFIRM</button>
+                  <button type="button" class="cms-btn cms-btn-outline btn-quick-pending" data-id="${b.id}" style="padding:3px 6px; font-size:9px;">MARK PENDING</button>
+                </div>
               </div>
             </div>
           </td>
@@ -367,8 +387,23 @@
     tbody.querySelectorAll('.btn-reschedule').forEach(btn => {
       btn.addEventListener('click', () => rescheduleBooking(btn.dataset.id));
     });
+    tbody.querySelectorAll('.btn-complete-booking').forEach(btn => {
+      btn.addEventListener('click', () => completeBooking(btn.dataset.id));
+    });
     tbody.querySelectorAll('.btn-cancel-booking').forEach(btn => {
       btn.addEventListener('click', () => cancelBooking(btn.dataset.id));
+    });
+    tbody.querySelectorAll('.btn-resend-email').forEach(btn => {
+      btn.addEventListener('click', () => resendConfirmationEmail(btn.dataset.id));
+    });
+    tbody.querySelectorAll('.btn-delete-booking').forEach(btn => {
+      btn.addEventListener('click', () => deleteBooking(btn.dataset.id));
+    });
+    tbody.querySelectorAll('.btn-quick-confirm').forEach(btn => {
+      btn.addEventListener('click', () => updateBookingStatus(btn.dataset.id, 'confirmed', 'payment_verified'));
+    });
+    tbody.querySelectorAll('.btn-quick-pending').forEach(btn => {
+      btn.addEventListener('click', () => updateBookingStatus(btn.dataset.id, 'pending_payment', 'unpaid'));
     });
   }
 
@@ -407,6 +442,78 @@
       showToast(result.error || 'Unable to update payment.', true);
     } else {
       showToast(action === 'confirm' ? 'Payment confirmed! Confirmation email sent to client.' : 'Payment marked not received.');
+      loadDashboard();
+    }
+  }
+
+  async function deleteBooking(id) {
+    if (!confirm('Are you sure you want to permanently DELETE this booking? This will remove the booking and its payment records completely. This action cannot be undone.')) return;
+    showToast('Deleting booking…');
+    const { data: sessionData } = await client.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const res = await fetch('/api/admin-booking-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
+      body: JSON.stringify({ bookingId: id, action: 'delete' })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(result.error || 'Unable to delete booking.', true);
+    } else {
+      showToast('Booking permanently deleted.');
+      loadDashboard();
+    }
+  }
+
+  async function completeBooking(id) {
+    showToast('Marking appointment as completed…');
+    const { data: sessionData } = await client.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const res = await fetch('/api/admin-booking-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
+      body: JSON.stringify({ bookingId: id, action: 'complete' })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(result.error || 'Unable to mark completed.', true);
+    } else {
+      showToast('Appointment marked completed.');
+      loadDashboard();
+    }
+  }
+
+  async function resendConfirmationEmail(id) {
+    showToast('Resending confirmation email…');
+    const { data: sessionData } = await client.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const res = await fetch('/api/admin-booking-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
+      body: JSON.stringify({ bookingId: id, action: 'resend_confirmation' })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(result.error || 'Unable to resend email.', true);
+    } else {
+      showToast('Confirmation email sent to client.');
+    }
+  }
+
+  async function updateBookingStatus(id, newStatus, newPaymentStatus) {
+    showToast('Updating status…');
+    const { data: sessionData } = await client.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const res = await fetch('/api/admin-booking-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
+      body: JSON.stringify({ bookingId: id, action: 'update_status', status: newStatus, paymentStatus: newPaymentStatus })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(result.error || 'Unable to update status.', true);
+    } else {
+      showToast('Booking status updated.');
       loadDashboard();
     }
   }
