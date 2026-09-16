@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
     const [hours, minutes] = time.split(':').map(Number);
     const requestedStart = hours * 60 + minutes;
     const requestedEnd = requestedStart + Number(service.duration_minutes || 180);
-    const inRule = rules.some((rule) => requestedStart >= toMinutes(rule.start_time) && requestedEnd <= toMinutes(rule.end_time));
+    const inRule = rules.some((rule) => requestedStart >= toMinutes(rule.start_time) && requestedStart <= toMinutes(rule.end_time));
     if (!inRule) return json(res, 409, { error: 'That time is outside Maeva’s availability.' });
     const blockedTimes = await supabase(`blocked_times?blocked_date=eq.${date}&select=start_time,end_time`);
     if (blockedTimes.some((slot) => requestedStart < toMinutes(slot.end_time) && requestedEnd > toMinutes(slot.start_time))) return json(res, 409, { error: 'That time is not available.' });

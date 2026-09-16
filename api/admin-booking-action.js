@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
         supabase(`bookings?appointment_date=eq.${date}&status=not.in.(cancelled)&id=not.eq.${encodeURIComponent(booking.id)}&select=appointment_time,duration_minutes`),
       ]);
       const start = toMinutes(time); const end = start + Number(booking.duration_minutes || 180);
-      if (blockedDates.length || !rules.some((rule) => start >= toMinutes(rule.start_time) && end <= toMinutes(rule.end_time))) return json(res, 409, { error: 'That date or time is not available.' });
+      if (blockedDates.length || !rules.some((rule) => start >= toMinutes(rule.start_time) && start <= toMinutes(rule.end_time))) return json(res, 409, { error: 'That date or time is not available.' });
       if (blockedTimes.some((slot) => start < toMinutes(slot.end_time) && end > toMinutes(slot.start_time)) || conflicts.some((item) => { const otherStart = toMinutes(item.appointment_time); const otherEnd = otherStart + Number(item.duration_minutes || 180); return start < otherEnd && end > otherStart; })) return json(res, 409, { error: 'That time overlaps an unavailable or booked period.' });
       await supabase(`bookings?id=eq.${encodeURIComponent(booking.id)}`, { method: 'PATCH', body: JSON.stringify({ appointment_date: date, appointment_time: time, status: 'rescheduled', updated_at: new Date().toISOString() }) });
       const customer = (await supabase(`customers?id=eq.${encodeURIComponent(booking.customer_id)}&select=full_name,email`))[0];

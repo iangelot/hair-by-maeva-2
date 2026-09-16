@@ -37,7 +37,10 @@ module.exports = async function handler(req, res) {
     const slots = [];
     for (const rule of rules) {
       const start = minutes(rule.start_time); const end = minutes(rule.end_time);
-      for (let slot = start; slot + duration <= end; slot += 30) {
+      // Maeva's hours define selectable appointment start times. A service may
+      // finish after the final start-time boundary, so keep the complete
+      // 07:00–16:00 (or configured) start-time window visible to customers.
+      for (let slot = start; slot <= end; slot += 30) {
         const slotTime = appointmentDateTime(date, formatTime(slot)).getTime();
         if (slotTime < Date.now() + minNotice * 60 * 60 * 1000) continue;
         const slotEnd = slot + duration;

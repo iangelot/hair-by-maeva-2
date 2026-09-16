@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       supabase(`bookings?appointment_date=eq.${date}&status=not.in.(cancelled)&id=not.eq.${encodeURIComponent(booking.id)}&select=appointment_time,duration_minutes`),
     ]);
     const start = toMinutes(time); const end = start + Number(booking.duration_minutes || 180);
-    if (blocked.length || !rules.some((rule) => start >= toMinutes(String(rule.start_time).slice(0, 5)) && end <= toMinutes(String(rule.end_time).slice(0, 5)))) return json(res, 409, { error: 'That date or time is not available.' });
+    if (blocked.length || !rules.some((rule) => start >= toMinutes(String(rule.start_time).slice(0, 5)) && start <= toMinutes(String(rule.end_time).slice(0, 5)))) return json(res, 409, { error: 'That date or time is not available.' });
     if (blockedTimes.some((slot) => start < toMinutes(String(slot.end_time).slice(0, 5)) && end > toMinutes(String(slot.start_time).slice(0, 5)))) return json(res, 409, { error: 'That time is blocked.' });
     if (conflicts.some((item) => { const otherStart = toMinutes(String(item.appointment_time).slice(0, 5)); const otherEnd = otherStart + Number(item.duration_minutes || 180); return start < otherEnd && end > otherStart; })) return json(res, 409, { error: 'That time was just taken.' });
     await supabase(`bookings?id=eq.${encodeURIComponent(booking.id)}`, { method: 'PATCH', body: JSON.stringify({ appointment_date: date, appointment_time: time, status: 'rescheduled', updated_at: new Date().toISOString() }) });
