@@ -75,7 +75,7 @@ const paymentStep = document.createElement('div');
 document.querySelector('#submit-booking').textContent = 'PROCEED TO PAYMENT ↗';
 paymentStep.className = 'modal-step hidden';
 paymentStep.dataset.step = 'payment';
-paymentStep.innerHTML = '<p class="eyebrow">07 / 07</p><h2>Choose your<br /><em>payment.</em></h2><p class="provider-line"><strong>Hair by Maeva</strong><br>Chicago, IL</p><div class="payment-method-list" id="payment-method-list"><p class="payment-loading">Loading payment methods…</p></div><div class="payment-instructions hidden" id="payment-instructions"><p class="eyebrow" id="payment-method-name">PAYMENT DETAILS</p><p id="payment-method-copy"></p><a class="pill pill-dark" id="payment-open-link" href="#" target="_blank" rel="noreferrer">OPEN PAYMENT APP ↗</a><button class="modal-next" id="payment-paid">I’VE PAID ↗</button></div>';
+paymentStep.innerHTML = '<p class="eyebrow">07 / 07</p><h2>Choose your<br /><em>payment.</em></h2><p class="provider-line"><strong>Hair by Maeva</strong><br>Chicago, IL</p><div class="payment-method-picker" id="payment-method-picker"><div class="payment-method-list" id="payment-method-list"><p class="payment-loading">Loading payment methods…</p></div></div><div class="payment-instructions hidden" id="payment-instructions"><button type="button" class="payment-details-back" id="payment-details-back">← PAYMENT METHODS</button><p class="eyebrow" id="payment-method-name">PAYMENT DETAILS</p><p id="payment-method-copy"></p><div id="payment-account-details" class="payment-account-details"></div><a class="pill pill-dark" id="payment-open-link" href="#" target="_blank" rel="noreferrer">OPEN PAYMENT APP ↗</a><button class="modal-next" id="payment-paid">I’VE PAID ↗</button></div>';
 const paymentBack = document.createElement('button'); paymentBack.type = 'button'; paymentBack.className = 'modal-back'; paymentBack.textContent = '← BACK'; paymentBack.dataset.back = 'review'; paymentStep.prepend(paymentBack);
 document.querySelector('.booking-modal').insertBefore(paymentStep, document.querySelector('.modal-success'));
 const paymentMethods = [];
@@ -98,15 +98,22 @@ const loadPaymentMethods = async () => {
        paymentStep.querySelector('#payment-method-name').textContent = method.name.toUpperCase();
        const copy = paymentStep.querySelector('#payment-method-copy');
        copy.textContent = method.instructions || 'Send the reservation fee, then return here and confirm payment.';
-       let accountDetails = paymentStep.querySelector('#payment-account-details');
-       if (!accountDetails) { accountDetails = document.createElement('div'); accountDetails.id = 'payment-account-details'; accountDetails.className = 'payment-account-details'; copy.after(accountDetails); }
+       const accountDetails = paymentStep.querySelector('#payment-account-details');
        accountDetails.replaceChildren();
-       [['Handle', method.handle], ['Email', method.email], ['Phone', method.phone]].filter(([, value]) => value).forEach(([label, value]) => { const line = document.createElement('p'); line.innerHTML = `<span>${label}</span><strong></strong>`; line.querySelector('strong').textContent = value; accountDetails.append(line); });
+       [['Handle', method.handle], ['Email', method.email], ['Phone', method.phone]].filter(([, value]) => value).forEach(([label, value]) => {
+         const line = document.createElement('div'); line.className = 'payment-account-line';
+         const labelNode = document.createElement('span'); labelNode.textContent = label;
+         const valueNode = document.createElement('strong'); valueNode.textContent = value;
+         const copyButton = document.createElement('button'); copyButton.type = 'button'; copyButton.className = 'copy-payment'; copyButton.textContent = 'COPY';
+         copyButton.addEventListener('click', async () => { try { await navigator.clipboard.writeText(String(value)); copyButton.textContent = 'COPIED'; setTimeout(() => { copyButton.textContent = 'COPY'; }, 1400); } catch { copyButton.textContent = 'SELECT & COPY'; } });
+         line.append(labelNode, valueNode, copyButton); accountDetails.append(line);
+       });
        if (method.qr_code_url || method.qr_code_path) { const qr = document.createElement('img'); qr.src = method.qr_code_url || method.qr_code_path; qr.alt = `${method.name} payment QR code`; qr.className = 'payment-qr'; accountDetails.append(qr); }
       const link = paymentStep.querySelector('#payment-open-link');
       link.href = method.deep_link || method.payment_url || '#';
-      link.classList.toggle('hidden', !(method.deep_link || method.payment_url));
-      paymentStep.querySelector('#payment-instructions').classList.remove('hidden');
+       link.classList.toggle('hidden', !(method.deep_link || method.payment_url));
+       paymentStep.querySelector('#payment-method-picker').classList.add('hidden');
+       paymentStep.querySelector('#payment-instructions').classList.remove('hidden');
       selected.paymentMethodId = method.id;
       });
     });
@@ -116,6 +123,7 @@ const loadPaymentMethods = async () => {
     }
   } catch (error) { list.innerHTML = `<p class="payment-error">Payment options are not enabled yet. Maeva’s payment details will appear here as soon as they are configured.</p>`; }
 };
+paymentStep.querySelector('#payment-details-back').addEventListener('click', () => { paymentStep.querySelector('#payment-instructions').classList.add('hidden'); paymentStep.querySelector('#payment-method-picker').classList.remove('hidden'); });
 let lastFocusedElement = null;
 const closeModal = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); lastFocusedElement?.focus(); };
 const previousStep = { length: 'service', date: 'length', time: 'date', details: 'time', review: 'details', payment: 'review' };
