@@ -1,4 +1,4 @@
-const { adminRecipients, appointmentDateTime, body, clean, env, escapeHtml, json, supabase, tokenPair, trySendEmail, trySendTemplatedEmail } = require('./_lib');
+const { appointmentDateTime, body, clean, env, json, supabase, tokenPair } = require('./_lib');
 
 // The reservation fee is a business rule, not a value the browser is allowed
 // to choose. Keep it server-owned until an admin-configurable setting exists.
@@ -57,11 +57,10 @@ module.exports = async function handler(req, res) {
     const reservationFee = RESERVATION_FEE;
     const booking = (await supabase('bookings', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ customer_id: customer.id, service_id: service.id, service_name_snapshot: service.name, length_name_snapshot: length.name, options_snapshot: optionsSnapshot, appointment_date: date, appointment_time: time, duration_minutes: service.duration_minutes, total_price: total, reservation_fee: reservationFee, remaining_balance: Math.max(0, total - reservationFee), access_token_hash: hash, access_token_ciphertext: ciphertext, customer_notes: clean(input.notes, 1000) }) }))[0];
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
-    const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
-    const html = `<p>Hi ${escapeHtml(fullName)},</p><p>Your Hair by Maeva booking request <strong>${escapeHtml(booking.booking_number)}</strong> has been received.</p><p>${escapeHtml(service.name)} · ${escapeHtml(length.name)}<br>${escapeHtml(date)} at ${escapeHtml(time)}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
-    const customerEmailSent = await trySendTemplatedEmail({ templateKey: 'booking_confirmation', to: email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number}`, html, variables: { booking_number: booking.booking_number, customer_name: fullName, service: service.name, length: length.name, date, time, total: total.toFixed(2), deposit: reservationFee.toFixed(2), remaining: Math.max(0, total - reservationFee).toFixed(2), payment_status: 'unpaid', manage_url: manageUrl } });
-    const adminEmailSent = process.env.ADMIN_EMAIL ? await trySendTemplatedEmail({ templateKey: 'new_booking_admin', to: adminRecipients(), replyTo: email, subject: `New Hair by Maeva booking — ${booking.booking_number}`, html: `<p>New booking from ${escapeHtml(fullName)} (${escapeHtml(email)}).</p>${html}`, variables: { booking_number: booking.booking_number, customer_name: fullName, service: service.name, length: length.name, date, time, total: total.toFixed(2), deposit: reservationFee.toFixed(2), remaining: Math.max(0, total - reservationFee).toFixed(2), payment_status: 'unpaid', manage_url: manageUrl } }) : false;
-    return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl: manageUrl, totalPrice: total, reservationFee, remainingBalance: Math.max(0, total - reservationFee), emailSent: customerEmailSent, adminEmailSent });
+    // A booking becomes actionable only after the client submits payment. Keeping
+    // this step silent prevents duplicate and premature admin notifications.
+    const accessUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
+    return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl, totalPrice: total, reservationFee, remainingBalance: Math.max(0, total - reservationFee), emailSent: false, adminEmailSent: false });
   } catch (error) {
     console.error(error);
     if (/overlap|already booked|existing booking/i.test(error.message || '')) return json(res, 409, { error: 'That time was just taken. Please choose another appointment slot.' });
