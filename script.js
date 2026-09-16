@@ -304,7 +304,14 @@ async function loadPublicContent() {
       if (heroSection.content.secondaryCta) document.querySelector('.hero-actions .text-link').firstChild.textContent = `${heroSection.content.secondaryCta} `;
       if (heroSection.content.primaryCtaLink) document.querySelector('.hero-actions .pill').href = heroSection.content.primaryCtaLink;
       if (heroSection.content.secondaryCtaLink) document.querySelector('.hero-actions .text-link').href = heroSection.content.secondaryCtaLink;
-      if (heroSection.content.heroImage || heroSection.content.heroImageUrl) { const heroImage = heroSection.content.heroImage || heroSection.content.heroImageUrl; document.querySelector('.hero-image').style.backgroundImage = `url("${String(heroImage).replaceAll('"', '')}")`; }
+      if (heroSection.content.heroImage || heroSection.content.heroImageUrl) {
+        const heroImage = String(heroSection.content.heroImage || heroSection.content.heroImageUrl).trim();
+        // Do not let an old Figma/raw-host URL blank the production hero under CSP.
+        // Admin-managed same-origin and Supabase Storage images remain supported.
+        if (!/^https?:\/\/(www\.)?figma\.com\//i.test(heroImage) && !/^https?:\/\/raw\.githubusercontent\.com\//i.test(heroImage)) {
+          document.querySelector('.hero-image').style.backgroundImage = `url("${heroImage.replaceAll('"', '')}")`;
+        }
+      }
     }
     const servicesSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'services');
     if (servicesSection?.content) { const heading = document.querySelector('#services .section-heading'); if (servicesSection.content.eyebrow) heading.querySelector('.eyebrow').textContent = servicesSection.content.eyebrow; if (servicesSection.content.title) heading.querySelector('h2').textContent = servicesSection.content.title; }
