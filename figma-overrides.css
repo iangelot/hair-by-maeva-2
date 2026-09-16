@@ -29,4 +29,8 @@ html,body{overflow-x:hidden}
 .cms-section-image{min-height:220px;margin:20px 0;background-size:cover;background-position:center;border-radius:2px}
 .section-order-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .booking-detail{font-size:11px;line-height:1.4;color:#765e58;margin:6px 0}
+.service-image.image-one,.gallery-tile.image-one{background-image:url('./assets/web/gallery-1.jpg')}
+.service-image.image-two,.gallery-tile.image-two{background-image:url('./assets/web/gallery-2.jpg')}
+.service-image.image-three,.gallery-tile.image-three{background-image:url('./assets/web/gallery-3.jpg')}
+.gallery-tile.image-four{background-image:url('./assets/web/gallery-4.jpg')}
 .provider-line{margin:0 0 24px;color:#5b4038;font-size:16px;line-height:1.4}.provider-line strong{font-family:var(--display);font-weight:400;font-size:22px}
