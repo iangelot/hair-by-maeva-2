@@ -43,7 +43,7 @@
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     const setStatus = (text, error = false) => { status.textContent = text; status.style.color = error ? '#a23939' : ''; };
     async function loadDashboard() {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
       const { data: bookings, error } = await client.from('bookings').select('id,booking_number,service_name_snapshot,length_name_snapshot,appointment_date,appointment_time,total_price,reservation_fee,admin_notes,payment_status,status,customers(full_name,email)').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true }).limit(100);
       if (error) { setStatus(error.message, true); return; }
       const rows = bookings || [];
