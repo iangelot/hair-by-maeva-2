@@ -1,4 +1,4 @@
-const { adminRecipients, body, clean, env, escapeHtml, json, supabase, tokenPair, trySendEmail } = require('./_lib');
+const { adminRecipients, body, clean, env, escapeHtml, json, supabase, tokenPair, trySendEmail, trySendTemplatedEmail } = require('./_lib');
 
 // The reservation fee is a business rule, not a value the browser is allowed
 // to choose. Keep it server-owned until an admin-configurable setting exists.
@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
     await supabase('payments', { method: 'POST', body: JSON.stringify({ booking_id: booking.id, amount: reservationFee, status: 'unpaid' }) });
     const manageUrl = `${env('PUBLIC_SITE_URL')}/booking.html?token=${encodeURIComponent(token)}`;
     const html = `<p>Hi ${escapeHtml(fullName)},</p><p>Your Hair by Maeva booking request <strong>${escapeHtml(booking.booking_number)}</strong> has been received.</p><p>${escapeHtml(service.name)} · ${escapeHtml(length.name)}<br>${escapeHtml(date)} at ${escapeHtml(time)}<br>Total: $${total.toFixed(2)} · Reservation fee: $${reservationFee.toFixed(2)}</p><p>Payment is not confirmed yet. Use the secure link below to view your booking:</p><p><a href="${manageUrl}">View / manage my booking</a></p>`;
-    const customerEmailSent = await trySendEmail({ to: email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number}`, html });
+    const customerEmailSent = await trySendTemplatedEmail({ templateKey: 'booking_confirmation', to: email, replyTo: process.env.ADMIN_ROUTING_EMAIL || undefined, subject: `Hair by Maeva — Booking ${booking.booking_number}`, html, variables: { booking_number: booking.booking_number, customer_name: fullName, service: service.name, length: length.name, date, time, total: total.toFixed(2), deposit: reservationFee.toFixed(2), remaining: Math.max(0, total - reservationFee).toFixed(2), payment_status: 'unpaid', manage_url: manageUrl } });
     const adminEmailSent = process.env.ADMIN_EMAIL ? await trySendEmail({ to: adminRecipients(), replyTo: email, subject: `New Hair by Maeva booking — ${booking.booking_number}`, html: `<p>New booking from ${escapeHtml(fullName)} (${escapeHtml(email)}).</p>${html}` }) : false;
     return json(res, 201, { bookingNumber: booking.booking_number, status: booking.status, accessUrl: manageUrl, totalPrice: total, reservationFee, remainingBalance: Math.max(0, total - reservationFee), emailSent: customerEmailSent, adminEmailSent });
   } catch (error) {
