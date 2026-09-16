@@ -19,7 +19,21 @@ module.exports = async function handler(req, res) {
       if (/^assets\//i.test(String(path).replace(/^\/+/, ''))) return `/${String(path).replace(/^\/+/, '')}`;
       return `${mediaBase}${String(path).replace(/^\/+/, '')}`;
     };
-    return json(res, 200, { policies, socials, sections, sectionVisibility, services: services.map((item) => ({ ...item, image_url: publicMediaUrl(item.image_path) })), categories, gallery: gallery.map((item) => ({ ...item, public_url: publicMediaUrl(item.image_path) })) });
+    const sanitizedSections = sections.map((s) => {
+      if (s.section_key === 'contact' && s.content) {
+        if (!s.content.email || s.content.email === 'idrissangelot99@gmail.com') {
+          s.content.email = 'maevausa@outlook.com';
+          if (s.id) {
+            supabase(`website_sections?id=eq.${s.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ content: s.content })
+            }).catch(() => {});
+          }
+        }
+      }
+      return s;
+    });
+    return json(res, 200, { policies, socials, sections: sanitizedSections, sectionVisibility, services: services.map((item) => ({ ...item, image_url: publicMediaUrl(item.image_path) })), categories, gallery: gallery.map((item) => ({ ...item, public_url: publicMediaUrl(item.image_path) })) });
   } catch (error) {
     console.error(error);
     return json(res, 500, { error: 'Site content is temporarily unavailable.' });
