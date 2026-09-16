@@ -1,5 +1,5 @@
 const crypto = require('node:crypto');
-const { adminRecipients, body, clean, env, escapeHtml, json, supabase, trySendEmail } = require('./_lib');
+const { adminRecipients, appointmentDateTime, body, clean, env, escapeHtml, json, supabase, trySendEmail } = require('./_lib');
 
 const getBooking = async (token) => {
   const hash = crypto.createHash('sha256').update(token).digest('hex');
@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     const date = clean(input.date, 10); const time = clean(input.time, 5);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return json(res, 400, { error: 'Choose a valid new date and time.' });
     if (Number(time.slice(3, 5)) % 30 !== 0) return json(res, 400, { error: 'Please choose a 30-minute appointment slot.' });
-    const requested = new Date(`${date}T${time}:00`); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
+    const requested = appointmentDateTime(date, time); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
     const [rules, blocked, blockedTimes, conflicts] = await Promise.all([
       supabase(`availability_rules?weekday=eq.${weekday}&is_active=eq.true&select=start_time,end_time`),

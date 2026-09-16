@@ -1,4 +1,4 @@
-const { adminRecipients, body, clean, env, escapeHtml, json, supabase, tokenPair, trySendEmail, trySendTemplatedEmail } = require('./_lib');
+const { adminRecipients, appointmentDateTime, body, clean, env, escapeHtml, json, supabase, tokenPair, trySendEmail, trySendTemplatedEmail } = require('./_lib');
 
 // The reservation fee is a business rule, not a value the browser is allowed
 // to choose. Keep it server-owned until an admin-configurable setting exists.
@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
     if ((!serviceId && !serviceSlug) || (!lengthId && !lengthName) || !date || !time || !fullName || !email || !phone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: 'Please complete all required booking details with a valid email.' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return json(res, 400, { error: 'Invalid appointment date or time.' });
     if (Number(time.slice(3, 5)) % 30 !== 0) return json(res, 400, { error: 'Please choose a 30-minute appointment slot.' });
-    const requestedAt = new Date(`${date}T${time}:00`);
+    const requestedAt = appointmentDateTime(date, time);
     const settings = (await supabase('booking_settings?id=eq.1&select=minimum_notice_hours,maximum_advance_days&limit=1'))[0] || {};
     const maxAdvanceDays = Number(settings.maximum_advance_days ?? process.env.BOOKING_MAX_ADVANCE_DAYS ?? 365);
     const minimumNoticeHours = Number(settings.minimum_notice_hours ?? process.env.BOOKING_MIN_NOTICE_HOURS ?? 0);

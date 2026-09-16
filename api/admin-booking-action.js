@@ -1,4 +1,4 @@
-const { adminRecipients, body, clean, escapeHtml, json, requireAdmin, supabase, trySendEmail } = require('./_lib');
+const { adminRecipients, appointmentDateTime, body, clean, escapeHtml, json, requireAdmin, supabase, trySendEmail } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
     if (action === 'reschedule') {
       const date = clean(input.date, 10); const time = clean(input.time, 5);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time) || Number(time.slice(3, 5)) % 30 !== 0) return json(res, 400, { error: 'Choose a valid 30-minute appointment slot.' });
-      const requested = new Date(`${date}T${time}:00`); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
+      const requested = appointmentDateTime(date, time); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
       const weekday = new Date(`${date}T12:00:00Z`).getUTCDay(); const toMinutes = (value) => { const [hours, minutes] = String(value).slice(0, 5).split(':').map(Number); return hours * 60 + minutes; };
       const [rules, blockedDates, blockedTimes, conflicts] = await Promise.all([
         supabase(`availability_rules?weekday=eq.${weekday}&is_active=eq.true&select=start_time,end_time`),

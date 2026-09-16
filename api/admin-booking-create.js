@@ -1,4 +1,4 @@
-const { body, clean, env, escapeHtml, json, requireAdmin, supabase, tokenPair, trySendTemplatedEmail } = require('./_lib');
+const { appointmentDateTime, body, clean, env, escapeHtml, json, requireAdmin, supabase, tokenPair, trySendTemplatedEmail } = require('./_lib');
 
 const minutes = (value) => { const [hours, mins] = String(value).slice(0, 5).split(':').map(Number); return hours * 60 + mins; };
 
@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
     await requireAdmin(req);
     const input = await body(req); const serviceId = clean(input.serviceId, 80); const lengthId = clean(input.lengthId, 80); const date = clean(input.date, 10); const time = clean(input.time, 5); const fullName = clean(input.fullName, 120); const email = clean(input.email, 160).toLowerCase(); const phone = clean(input.phone, 40);
     if (!serviceId || !lengthId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time) || Number(time.slice(3, 5)) % 30 !== 0 || !fullName || !email || !phone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: 'Complete the customer, service, date, and time fields.' });
-    const requested = new Date(`${date}T${time}:00`); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
+    const requested = appointmentDateTime(date, time); if (Number.isNaN(requested.getTime()) || requested < new Date()) return json(res, 400, { error: 'Choose a future appointment time.' });
     const service = (await supabase(`services?id=eq.${encodeURIComponent(serviceId)}&is_active=eq.true&select=id,name,duration_minutes`))[0];
     const length = service ? (await supabase(`service_lengths?id=eq.${encodeURIComponent(lengthId)}&service_id=eq.${encodeURIComponent(service.id)}&is_active=eq.true&select=id,name,price`))[0] : null;
     if (!service || !length) return json(res, 400, { error: 'That service or length is unavailable.' });

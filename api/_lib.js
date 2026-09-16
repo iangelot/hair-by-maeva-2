@@ -69,6 +69,16 @@ function clean(value, max = 500) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+function appointmentDateTime(date, time = '00:00') {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T?(\d{2}):(\d{2})/.exec(`${date}T${time}`);
+  if (!match) return new Date(NaN);
+  const [, year, month, day, hour, minute] = match;
+  const guess = Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(guess)).filter((part) => part.type !== 'literal').map((part) => [part.type, Number(part.value)]));
+  const chicagoAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+  return new Date(guess + (guess - chicagoAsUtc));
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 }
@@ -119,4 +129,4 @@ async function requireAdmin(req) {
   return user;
 }
 
-module.exports = { adminRecipients, body, clean, decryptToken, env, escapeHtml, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail, trySendTemplatedEmail };
+module.exports = { adminRecipients, appointmentDateTime, body, clean, decryptToken, env, escapeHtml, json, requireAdmin, sendEmail, supabase, supabasePublic, tokenPair, trySendEmail, trySendTemplatedEmail };
