@@ -7,7 +7,7 @@ drawerClose.addEventListener('click', () => setDrawer(false));
 drawer.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setDrawer(false)));
 
 document.querySelectorAll('.filter').forEach((btn) => btn.addEventListener('click', () => {
-  document.querySelectorAll('.filter').forEach((b) => b.classList.remove('active'));
+  document.querySelectorAll('.filter').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-selected', String(b === btn)); });
   btn.classList.add('active');
   const filter = btn.dataset.filter;
   document.querySelectorAll('.service-card').forEach((card) => { card.style.display = filter === 'all' || card.dataset.category === filter ? '' : 'none'; });
@@ -260,9 +260,9 @@ async function loadPublicContent() {
     }
     if (Array.isArray(data.categories) && data.categories.length) {
       const filterRow = document.querySelector('.filter-row'); filterRow.replaceChildren();
-      const all = document.createElement('button'); all.className = 'filter active'; all.dataset.filter = 'all'; all.textContent = 'All'; filterRow.append(all);
-      data.categories.forEach((category) => { const button = document.createElement('button'); button.className = 'filter'; button.dataset.filter = category.slug; button.textContent = category.name; filterRow.append(button); });
-      filterRow.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => { filterRow.querySelectorAll('.filter').forEach((item) => item.classList.remove('active')); button.classList.add('active'); document.querySelectorAll('.service-card').forEach((card) => { card.style.display = button.dataset.filter === 'all' || card.dataset.category === button.dataset.filter ? '' : 'none'; }); }));
+      const all = document.createElement('button'); all.className = 'filter active'; all.dataset.filter = 'all'; all.setAttribute('role', 'tab'); all.setAttribute('aria-selected', 'true'); all.textContent = 'All'; filterRow.append(all);
+      data.categories.forEach((category) => { const button = document.createElement('button'); button.className = 'filter'; button.dataset.filter = category.slug; button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', 'false'); button.textContent = category.name; filterRow.append(button); });
+      filterRow.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => { filterRow.querySelectorAll('.filter').forEach((item) => { item.classList.remove('active'); item.setAttribute('aria-selected', String(item === button)); }); button.classList.add('active'); document.querySelectorAll('.service-card').forEach((card) => { card.style.display = button.dataset.filter === 'all' || card.dataset.category === button.dataset.filter ? '' : 'none'; }); }));
     }
     const heroSection = (data.sections || []).find((section) => section.page_slug === 'home' && section.section_key === 'hero');
     const homeSectionNodes = { hero: document.querySelector('.hero'), services: document.querySelector('#services'), gallery: document.querySelector('#gallery'), policies: document.querySelector('#policies'), contact: document.querySelector('#contact'), booking: document.querySelector('#booking') };
