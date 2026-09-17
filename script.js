@@ -153,16 +153,6 @@ document.querySelector('.booking-modal').addEventListener('click', (event) => { 
 const USE_ACUITY_BOOKING = true; // Toggle to false at any time to instantly switch back to native multi-step booking modal
 
 const acuityModal = document.querySelector('#acuity-modal');
-const acuityIframe = document.querySelector('#acuity-iframe');
-const acuityLoading = document.querySelector('#acuity-loading');
-
-if (acuityIframe && acuityLoading) {
-  acuityIframe.addEventListener('load', () => {
-    acuityLoading.style.opacity = '0';
-    setTimeout(() => { acuityLoading.style.display = 'none'; }, 300);
-  });
-}
-
 const closeAcuityModal = () => {
   if (acuityModal) {
     acuityModal.classList.remove('open');
@@ -175,17 +165,21 @@ const openAcuityModal = () => {
     lastFocusedElement = document.activeElement;
     acuityModal.classList.add('open');
     acuityModal.setAttribute('aria-hidden', 'false');
-    if (acuityIframe && (!acuityIframe.src || acuityIframe.src === 'about:blank')) {
-      acuityIframe.src = 'https://app.acuityscheduling.com/schedule.php?owner=40415399';
-    }
     acuityModal.querySelector('#acuity-close')?.focus();
   }
 };
+const acuityIframe = document.querySelector('#acuity-iframe');
+const acuityLoading = document.querySelector('#acuity-loading');
+if (acuityIframe && acuityLoading) {
+  acuityIframe.addEventListener('load', () => {
+    acuityLoading.style.opacity = '0';
+    setTimeout(() => { acuityLoading.style.display = 'none'; }, 300);
+  });
+}
 document.querySelector('#acuity-close')?.addEventListener('click', closeAcuityModal);
 acuityModal?.addEventListener('click', (e) => {
   if (e.target === acuityModal) closeAcuityModal();
 });
-
 
 const triggerBooking = (entryPoint = 'general', serviceName = '') => {
   if (USE_ACUITY_BOOKING) {
