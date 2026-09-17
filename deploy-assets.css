@@ -5,3 +5,5 @@
 
 /* Production assets stay same-origin so the Figma-matched imagery is reliable. */
 .hero-image{background-image:url('./assets/web/hero.jpg')}.image-one{background-image:url('./assets/web/gallery-1.jpg')}.image-two{background-image:url('./assets/web/gallery-2.jpg')}.image-three{background-image:url('./assets/web/gallery-3.jpg')}.image-four{background-image:url('./assets/web/gallery-4.jpg')}.gallery-section{background-image:linear-gradient(rgba(245,239,230,.58),rgba(245,239,230,.58)),url('./assets/web/policies.jpg')}.gallery-grid .gallery-tile:nth-child(1){background-image:url('./assets/web/gallery-1.jpg')}.gallery-grid .gallery-tile:nth-child(2){background-image:url('./assets/web/gallery-2.jpg')}.gallery-grid .gallery-tile:nth-child(3){background-image:url('./assets/web/gallery-3.jpg')}.gallery-grid .gallery-tile:nth-child(4){background-image:url('./assets/web/gallery-4.jpg')}
+.acuity-modal{max-width:880px!important;width:95%!important;padding:28px 18px 20px!important;max-height:94svh!important}
+@media(min-width:700px){.acuity-modal{max-width:920px!important;padding:34px 28px 22px!important}}

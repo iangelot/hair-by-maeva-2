@@ -150,10 +150,51 @@ document.querySelectorAll('.modal-step').forEach((step) => {
 });
 const showStep = (step) => { document.querySelectorAll('.modal-step').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== step)); document.querySelector('.modal-success').classList.add('hidden'); };
 document.querySelector('.booking-modal').addEventListener('click', (event) => { const back = event.target.closest('[data-back]'); if (!back) return; if (back.dataset.back === 'service' && selected.entryPoint === 'service-card') { closeModal(); return; } showStep(back.dataset.back); });
-const openModal = (entryPoint = 'general') => { selected.entryPoint = entryPoint; lastFocusedElement = document.activeElement; modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); showStep('service'); modal.querySelector('.modal-close').focus(); };
-document.querySelector('#start-booking').addEventListener('click', () => { selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal('general'); });
-document.querySelectorAll('.hero-actions .pill, .drawer-book').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); setDrawer(false); selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal('general'); }));
-document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { openModal('service-card'); selected.service = btn.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
+const USE_ACUITY_BOOKING = true; // Toggle to false at any time to instantly switch back to native multi-step booking modal
+
+const acuityModal = document.querySelector('#acuity-modal');
+const closeAcuityModal = () => {
+  if (acuityModal) {
+    acuityModal.classList.remove('open');
+    acuityModal.setAttribute('aria-hidden', 'true');
+    lastFocusedElement?.focus();
+  }
+};
+const openAcuityModal = () => {
+  if (acuityModal) {
+    lastFocusedElement = document.activeElement;
+    acuityModal.classList.add('open');
+    acuityModal.setAttribute('aria-hidden', 'false');
+    acuityModal.querySelector('#acuity-close')?.focus();
+  }
+};
+document.querySelector('#acuity-close')?.addEventListener('click', closeAcuityModal);
+acuityModal?.addEventListener('click', (e) => {
+  if (e.target === acuityModal) closeAcuityModal();
+});
+
+const triggerBooking = (entryPoint = 'general', serviceName = '') => {
+  if (USE_ACUITY_BOOKING) {
+    openAcuityModal();
+  } else {
+    if (serviceName) {
+      openModal('service-card');
+      selected.service = serviceName;
+      selected.serviceId = catalogServiceIds[serviceName] || '';
+      syncLengthOptions();
+      showStep('length');
+    } else {
+      selected.service = '';
+      selected.serviceId = '';
+      syncLengthOptions();
+      openModal(entryPoint);
+    }
+  }
+};
+
+document.querySelector('#start-booking')?.addEventListener('click', (e) => { e.preventDefault(); triggerBooking('general'); });
+document.querySelectorAll('.hero-actions .pill, .drawer-book').forEach((link) => link.addEventListener('click', (event) => { if (link.getAttribute('href') === '#booking') { event.preventDefault(); setDrawer(false); triggerBooking('general'); } }));
+document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', (e) => { e.preventDefault(); triggerBooking('service-card', btn.dataset.service); }); });
 document.querySelector('.modal-close').addEventListener('click', closeModal);
 document.querySelector('.modal-close-success').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
@@ -225,8 +266,11 @@ document.querySelector('#contact-form').addEventListener('submit', async (e) => 
   try { const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Unable to send.'); form.reset(); status.textContent = 'Message sent — I’ll be in touch soon.'; } catch (error) { status.textContent = error.message; } finally { button.disabled = false; }
 });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (acuityModal?.classList.contains('open')) { closeAcuityModal(); return; }
+    if (modal.classList.contains('open')) { closeModal(); return; }
+  }
   if (!modal.classList.contains('open')) return;
-  if (e.key === 'Escape') { closeModal(); return; }
   if (e.key !== 'Tab') return;
   const focusable = [...modal.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled])')].filter((item) => !item.closest('.hidden'));
   if (!focusable.length) return;
@@ -366,12 +410,9 @@ async function loadPublicContent() {
           bookBtn.dataset.service = service.name;
           bookBtn.dataset.bound = 'true';
           bookBtn.innerHTML = 'BOOK NOW <span>↗</span>';
-          bookBtn.addEventListener('click', () => {
-            openModal('service-card');
-            selected.service = bookBtn.dataset.service;
-            selected.serviceId = catalogServiceIds[selected.service] || '';
-            syncLengthOptions();
-            showStep('length');
+          bookBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            triggerBooking('service-card', bookBtn.dataset.service);
           });
 
           infoDiv.append(title, priceP, bookBtn);
