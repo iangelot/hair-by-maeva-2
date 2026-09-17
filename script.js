@@ -142,6 +142,18 @@ const loadPaymentMethods = async () => {
 paymentStep.querySelector('#payment-details-back').addEventListener('click', () => { paymentStep.querySelector('#payment-instructions').classList.add('hidden'); paymentStep.querySelector('#payment-method-picker').classList.remove('hidden'); });
 let lastFocusedElement = null;
 const closeModal = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); lastFocusedElement?.focus(); };
+const openModal = (entryPoint = 'general') => {
+  selected.entryPoint = entryPoint;
+  lastFocusedElement = document.activeElement;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  if (entryPoint === 'service-card') {
+    showStep('length');
+  } else {
+    showStep('service');
+    document.querySelectorAll('.modal-options button').forEach((btn) => btn.classList.toggle('is-selected', btn.dataset.value === selected.service));
+  }
+};
 const previousStep = { length: 'service', date: 'length', time: 'date', details: 'time', review: 'details', payment: 'review' };
 document.querySelectorAll('.modal-step').forEach((step) => {
   const target = previousStep[step.dataset.step];
