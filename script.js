@@ -151,9 +151,13 @@ document.querySelectorAll('.modal-step').forEach((step) => {
 const showStep = (step) => { document.querySelectorAll('.modal-step').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== step)); document.querySelector('.modal-success').classList.add('hidden'); };
 document.querySelector('.booking-modal').addEventListener('click', (event) => { const back = event.target.closest('[data-back]'); if (!back) return; if (back.dataset.back === 'service' && selected.entryPoint === 'service-card') { closeModal(); return; } showStep(back.dataset.back); });
 const openModal = (entryPoint = 'general') => { selected.entryPoint = entryPoint; lastFocusedElement = document.activeElement; modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); showStep('service'); modal.querySelector('.modal-close').focus(); };
-document.querySelector('#start-booking').addEventListener('click', () => { selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal('general'); });
-document.querySelectorAll('.hero-actions .pill, .drawer-book').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); setDrawer(false); selected.service = ''; selected.serviceId = ''; syncLengthOptions(); openModal('general'); }));
-document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', () => { openModal('service-card'); selected.service = btn.dataset.service; selected.serviceId = catalogServiceIds[selected.service] || ''; syncLengthOptions(); showStep('length'); }); });
+const scrollToBooking = () => {
+  const bookingSec = document.getElementById('booking');
+  if (bookingSec) bookingSec.scrollIntoView({ behavior: 'smooth' });
+};
+document.querySelector('#start-booking')?.addEventListener('click', (e) => { e.preventDefault(); scrollToBooking(); });
+document.querySelectorAll('.hero-actions .pill, .drawer-book').forEach((link) => link.addEventListener('click', (event) => { if (link.getAttribute('href') === '#booking') { event.preventDefault(); setDrawer(false); scrollToBooking(); } }));
+document.querySelectorAll('.service-book').forEach((btn) => { btn.dataset.bound = 'true'; btn.addEventListener('click', (e) => { e.preventDefault(); scrollToBooking(); }); });
 document.querySelector('.modal-close').addEventListener('click', closeModal);
 document.querySelector('.modal-close-success').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
@@ -366,12 +370,9 @@ async function loadPublicContent() {
           bookBtn.dataset.service = service.name;
           bookBtn.dataset.bound = 'true';
           bookBtn.innerHTML = 'BOOK NOW <span>↗</span>';
-          bookBtn.addEventListener('click', () => {
-            openModal('service-card');
-            selected.service = bookBtn.dataset.service;
-            selected.serviceId = catalogServiceIds[selected.service] || '';
-            syncLengthOptions();
-            showStep('length');
+          bookBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            scrollToBooking();
           });
 
           infoDiv.append(title, priceP, bookBtn);
