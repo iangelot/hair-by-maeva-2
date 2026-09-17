@@ -170,25 +170,38 @@ const ACUITY_BASE_URL = `https://app.acuityscheduling.com/schedule.php?owner=${A
 const ACUITY_APPOINTMENT_MAP = {
   'box braids': '98400272',
   'box-braids': '98400272',
-  'senegalese twist': '',
-  'boho knotless': '',
-  'soft locs': '',
-  'french curly': '',
-  'miracles knotless braids': '',
-  'jumbo knotless': '',
-  'small knotless': '',
-  'medium knotless': '',
-  'xsmall knotless': '',
-  'bora bora braids': '',
-  'ponytail': '',
-  'fulani braids': '',
-  'half side stitch braid': '',
-  'micro twist': ''
+  'french curly': '98402587',
+  'half side stitch braid': '98402618',
+  'fulani braids': '98402665',
+  'ponytail': '98402726',
+  'micro twist': '98402771',
+  'miracles knotless braids': '98402823',
+  'miracles knotless': '98402823',
+  'bora bora braids': '98402871',
+  'bora bora': '98402871',
+  'boho knotless': '98403003',
+  'senegalese twist': '98403088',
+  'jumbo knotless': '98403146',
+  'jumbo knotless & box braids & twist': '98403146',
+  'xsmall knotless': '98403219',
+  'xsmall knotless & box braids & twist': '98403219'
 };
 
 const getAcuityUrlForService = (serviceName = '') => {
   const normalized = String(serviceName || '').trim().toLowerCase();
-  const appointmentTypeId = ACUITY_APPOINTMENT_MAP[normalized];
+  if (!normalized) return ACUITY_BASE_URL;
+  
+  // 1. Direct exact match
+  let appointmentTypeId = ACUITY_APPOINTMENT_MAP[normalized];
+  
+  // 2. Fuzzy / keyword match (e.g. "Jumbo" or "Senegalese" or "Boho")
+  if (!appointmentTypeId) {
+    const matchedKey = Object.keys(ACUITY_APPOINTMENT_MAP).find((key) => {
+      return normalized.includes(key) || key.includes(normalized);
+    });
+    if (matchedKey) appointmentTypeId = ACUITY_APPOINTMENT_MAP[matchedKey];
+  }
+  
   if (appointmentTypeId) {
     return `${ACUITY_BASE_URL}&appointmentType=${encodeURIComponent(appointmentTypeId)}`;
   }
