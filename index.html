@@ -55,13 +55,17 @@
 
         <section id="contact" class="section contact-section"><div class="contact-copy"><p class="eyebrow">QUESTIONS?</p><h2>Let’s get<br /><em>you booked.</em></h2><p>Have a question about a style, pricing, availability, or your appointment? I’m here to help.</p><form id="contact-form" class="contact-form"><label>NAME<input required name="name" placeholder="Your name" /></label><label>EMAIL<input required type="email" name="email" placeholder="you@email.com" /></label><label>PHONE<input name="phone" placeholder="(123) 456-7890" /></label><label>BOOKING NUMBER<input name="bookingNumber" placeholder="Optional" /></label><label>TOPIC<select name="topic"><option>General Question</option><option>Hairstyle / Pricing</option><option>Booking Help</option><option>Cancellation / Rescheduling</option><option>Payment</option><option>Other</option></select></label><label>MESSAGE<textarea required name="message" rows="3" placeholder="How can I help?"></textarea></label><button class="pill pill-dark" type="submit">SEND A MESSAGE</button><p class="form-status" aria-live="polite"></p></form></div><div class="contact-note"><p>CHICAGO, IL</p><p>Social links coming soon</p><p>maevausa@outlook.com</p></div></section>
 
-        <section id="booking" class="section booking-section" style="padding: 40px 16px;">
-          <div class="section-heading" style="text-align: center; margin-bottom: 24px;">
-            <p class="eyebrow">ONLINE SCHEDULING</p>
-            <h2>Schedule your<br /><em>appointment.</em></h2>
+        <section class="booking-panel">
+          <div>
+            <p class="eyebrow">READY WHEN YOU ARE</p>
+            <h2>Your next style<br /><em>starts here.</em></h2>
           </div>
+          <a class="pill pill-dark" href="#booking" id="start-booking">START BOOKING <span>↗</span></a>
+        </section>
+
+        <section id="booking" class="section booking-section" style="padding: 10px 16px 60px;">
           <div class="acuity-embed-container" style="max-width: 960px; margin: 0 auto; background: #fffaf4; border-radius: 16px; padding: 12px; box-shadow: 0 10px 32px rgba(77,44,46,0.08); border: 1px solid #ebdcd0; overflow: hidden;">
-            <iframe src="https://app.acuityscheduling.com/schedule.php?owner=40415399" title="Schedule Appointment" width="100%" height="800" frameBorder="0" style="border: 0; min-height: 800px; width: 100%;"></iframe>
+            <iframe src="https://app.acuityscheduling.com/schedule.php?owner=40415399" title="Schedule Appointment" width="100%" height="800" frameBorder="0" style="border: 0; min-height: 750px; width: 100%;"></iframe>
             <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
           </div>
         </section>
