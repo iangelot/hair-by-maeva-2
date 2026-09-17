@@ -163,39 +163,42 @@ document.querySelectorAll('.modal-step').forEach((step) => {
 const showStep = (step) => { document.querySelectorAll('.modal-step').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== step)); document.querySelector('.modal-success').classList.add('hidden'); };
 document.querySelector('.booking-modal').addEventListener('click', (event) => { const back = event.target.closest('[data-back]'); if (!back) return; if (back.dataset.back === 'service' && selected.entryPoint === 'service-card') { closeModal(); return; } showStep(back.dataset.back); });
 const USE_ACUITY_BOOKING = true; // Toggle to false at any time to instantly switch back to native multi-step booking modal
+const ACUITY_OWNER_ID = '40415399';
+const ACUITY_BASE_URL = `https://app.acuityscheduling.com/schedule.php?owner=${ACUITY_OWNER_ID}`;
 
-const acuityModal = document.querySelector('#acuity-modal');
-const closeAcuityModal = () => {
-  if (acuityModal) {
-    acuityModal.classList.remove('open');
-    acuityModal.setAttribute('aria-hidden', 'true');
-    lastFocusedElement?.focus();
-  }
+// Acuity Appointment Type IDs mapping for direct hairstyle booking
+const ACUITY_APPOINTMENT_MAP = {
+  'box braids': '98400272',
+  'box-braids': '98400272',
+  'senegalese twist': '',
+  'boho knotless': '',
+  'soft locs': '',
+  'french curly': '',
+  'miracles knotless braids': '',
+  'jumbo knotless': '',
+  'small knotless': '',
+  'medium knotless': '',
+  'xsmall knotless': '',
+  'bora bora braids': '',
+  'ponytail': '',
+  'fulani braids': '',
+  'half side stitch braid': '',
+  'micro twist': ''
 };
-const openAcuityModal = () => {
-  if (acuityModal) {
-    lastFocusedElement = document.activeElement;
-    acuityModal.classList.add('open');
-    acuityModal.setAttribute('aria-hidden', 'false');
-    acuityModal.querySelector('#acuity-close')?.focus();
+
+const getAcuityUrlForService = (serviceName = '') => {
+  const normalized = String(serviceName || '').trim().toLowerCase();
+  const appointmentTypeId = ACUITY_APPOINTMENT_MAP[normalized];
+  if (appointmentTypeId) {
+    return `${ACUITY_BASE_URL}&appointmentType=${encodeURIComponent(appointmentTypeId)}`;
   }
+  return ACUITY_BASE_URL;
 };
-const acuityIframe = document.querySelector('#acuity-iframe');
-const acuityLoading = document.querySelector('#acuity-loading');
-if (acuityIframe && acuityLoading) {
-  acuityIframe.addEventListener('load', () => {
-    acuityLoading.style.opacity = '0';
-    setTimeout(() => { acuityLoading.style.display = 'none'; }, 300);
-  });
-}
-document.querySelector('#acuity-close')?.addEventListener('click', closeAcuityModal);
-acuityModal?.addEventListener('click', (e) => {
-  if (e.target === acuityModal) closeAcuityModal();
-});
 
 const triggerBooking = (entryPoint = 'general', serviceName = '') => {
   if (USE_ACUITY_BOOKING) {
-    openAcuityModal();
+    const targetUrl = getAcuityUrlForService(serviceName);
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   } else {
     if (serviceName) {
       openModal('service-card');
